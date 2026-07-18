@@ -25,8 +25,15 @@
   .sub { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 4px; }
   .clock { font-family: monospace; font-size: 12px; color: rgba(255,255,255,0.7); text-align: right; }
   .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.75); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(30,41,59,0.25); }
-  .dot.live { background: #10B981; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+  .dot.live { background: #34D399; }
+  .refresh-line { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 4px; text-align: right; }
+  .market-badge {
+    display: none; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 3px 8px;
+    border-radius: 999px; text-align: center;
+  }
+  .market-badge.open { background: rgba(52,211,153,0.2); color: #A7F3D0; }
+  .market-badge.closed { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
 
   .card { background: #FFFFFF; border: 1px solid rgba(30,41,59,0.1); border-radius: 12px; }
   .connect-panel { margin-bottom: 24px; overflow: hidden; }
@@ -58,6 +65,10 @@
     margin-bottom: 24px; font-size: 12px; color: rgba(30,41,59,0.6); background: #F5F3FF;
     border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 10px 16px;
   }
+  .warn-banner {
+    display: none; margin-bottom: 24px; font-size: 12px; color: #7C2D12; background: #FFF7ED;
+    border: 1px solid #FDBA74; border-radius: 8px; padding: 10px 16px; font-weight: 600;
+  }
 
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
   .stat { padding: 16px; }
@@ -66,6 +77,15 @@
   .stat-value.up { color: #10B981; }
   .stat-value.down { color: #DC2626; }
   .stat-sub { font-size: 14px; font-weight: 400; font-family: 'Manrope', sans-serif; }
+
+  .stats3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat3 { padding: 14px; }
+  .stat3 .stat-label { font-size: 11px; }
+  .stat3 .stat-value { font-size: 18px; }
+
+  .chart-card { margin-bottom: 24px; }
+  .chart-body { padding: 16px 20px; }
+  .daybar-row { display: flex; gap: 6px; margin-top: 12px; height: 40px; }
 
   .watchlist-head { padding: 12px 20px; background: #7C3AED; border-radius: 12px 12px 0 0; }
   .watchlist-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
@@ -117,6 +137,8 @@
     <div>
       <div class="clock" id="clock"></div>
       <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Demo data</span></div>
+      <div class="refresh-line" id="refreshLine"></div>
+      <div class="market-badge" id="marketBadge"></div>
     </div>
   </div>
 
@@ -144,12 +166,31 @@
   </div>
 
   <div class="demo-banner" id="demoBanner">Showing sample data. Connect your Alpaca paper account above to see live numbers.</div>
+  <div class="warn-banner" id="killWarnBanner"></div>
 
   <div class="stats">
     <div class="card stat"><div class="stat-label">Total Equity</div><div class="stat-value" id="equityVal">$12,500.00</div></div>
     <div class="card stat"><div class="stat-label">Day P/L</div><div class="stat-value up" id="dayPLVal">+$125.40 <span class="stat-sub" id="dayPLPct">+1.01%</span></div></div>
     <div class="card stat"><div class="stat-label">Cash Reserves</div><div class="stat-value" id="cashVal">$4,800.00</div></div>
     <div class="card stat"><div class="stat-label">Open Positions</div><div class="stat-value" id="positionsVal">3</div></div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="section-head">
+      <div class="section-title">Equity &amp; Daily P/L</div>
+      <div class="section-sub">Last 30 sessions</div>
+    </div>
+    <div class="chart-body">
+      <div id="equityChartWrap"><div class="feed-empty">Connect to see equity history.</div></div>
+      <div class="daybar-row" id="dailyBarsWrap"></div>
+    </div>
+  </div>
+
+  <div class="stats3">
+    <div class="card stat3"><div class="stat-label">Trades</div><div class="stat-value" id="statTotalTrades">&mdash;</div></div>
+    <div class="card stat3"><div class="stat-label">Win rate</div><div class="stat-value" id="statWinRate">&mdash;</div></div>
+    <div class="card stat3"><div class="stat-label">Avg win</div><div class="stat-value" id="statAvgWin" style="color:#10B981;">&mdash;</div></div>
+    <div class="card stat3"><div class="stat-label">Avg loss</div><div class="stat-value" id="statAvgLoss" style="color:#DC2626;">&mdash;</div></div>
   </div>
 
   <div class="grid2">
@@ -207,6 +248,7 @@
 const WATCHLIST = ["AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN"];
 const MA_WINDOW = 20;
 const TIMEFRAME = "5Min";
+const REFRESH_SECONDS = 30;
 
 const DEMO = {
   equity: 12500.0, cash: 4800.0, dayPL: 125.4, dayPLPct: 1.01, openPositions: 3,
@@ -221,6 +263,8 @@ const DEMO = {
 };
 
 let connected = false;
+let session = null;
+let refreshCountdown = REFRESH_SECONDS;
 
 function fmtMoney(n) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -228,6 +272,16 @@ function fmtMoney(n) {
 
 function tick() {
   document.getElementById("clock").textContent = new Date().toLocaleTimeString("en-US", { hour12: true });
+  if (connected) {
+    refreshCountdown -= 1;
+    if (refreshCountdown <= 0) {
+      refreshCountdown = REFRESH_SECONDS;
+      loadAllData(true);
+    }
+    document.getElementById("refreshLine").textContent = `Next refresh in ${refreshCountdown}s`;
+  } else {
+    document.getElementById("refreshLine").textContent = "";
+  }
 }
 setInterval(tick, 1000);
 tick();
@@ -261,45 +315,64 @@ function renderPositions(positions) {
   const body = document.getElementById("positionsBody");
   if (!positions.length) {
     body.innerHTML = '<tr><td colspan="6" class="feed-empty">No open positions.</td></tr>';
-    return;
+  } else {
+    body.innerHTML = "";
+    positions.forEach((p) => {
+      const plPct = parseFloat(p.unrealized_plpc) * 100;
+      let risk = '<span class="risk-none">&mdash;</span>';
+      if (plPct <= -5) risk = '<span class="risk-kill">kill switch</span>';
+      else if (plPct >= 1) risk = '<span class="risk-trailing">&#8853; trailing</span>';
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="ticker">${p.symbol}</td>
+        <td class="mono">${p.qty}</td>
+        <td class="mono">$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
+        <td class="mono">$${parseFloat(p.current_price).toFixed(2)}</td>
+        <td class="mono" style="color:${plPct >= 0 ? '#10B981' : '#DC2626'}">${plPct >= 0 ? "+" : ""}${plPct.toFixed(2)}%</td>
+        <td>${risk}</td>
+      `;
+      body.appendChild(tr);
+    });
   }
-  body.innerHTML = "";
-  positions.forEach((p) => {
-    const plPct = parseFloat(p.unrealized_plpc) * 100;
-    let risk = '<span class="risk-none">&mdash;</span>';
-    if (plPct <= -5) risk = '<span class="risk-kill">kill switch</span>';
-    else if (plPct >= 1) risk = '<span class="risk-trailing">&#8853; trailing</span>';
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="ticker">${p.symbol}</td>
-      <td class="mono">${p.qty}</td>
-      <td class="mono">$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
-      <td class="mono">$${parseFloat(p.current_price).toFixed(2)}</td>
-      <td class="mono" style="color:${plPct >= 0 ? '#10B981' : '#DC2626'}">${plPct >= 0 ? "+" : ""}${plPct.toFixed(2)}%</td>
-      <td>${risk}</td>
-    `;
-    body.appendChild(tr);
-  });
+  checkKillSwitchWarning(positions);
+}
+
+function checkKillSwitchWarning(positions) {
+  const banner = document.getElementById("killWarnBanner");
+  const warn = positions.filter((p) => parseFloat(p.unrealized_plpc) * 100 <= -3);
+  if (warn.length) {
+    banner.style.display = "block";
+    banner.textContent = "Approaching kill switch (-5%): " + warn
+      .map((p) => `${p.symbol} ${(parseFloat(p.unrealized_plpc) * 100).toFixed(2)}%`)
+      .join(", ");
+  } else {
+    banner.style.display = "none";
+  }
 }
 
 async function fetchAndRenderFeed(headers, proxyUrl) {
   const feedList = document.getElementById("feedList");
   if (!proxyUrl) {
     feedList.innerHTML = '<div class="feed-empty">Feed needs the proxy worker (see Proxy URL field).</div>';
+    resetTradeStats();
     return;
   }
   try {
-    const url = `${proxyUrl.replace(/\/$/, "")}/api/orders?status=closed&limit=8&direction=desc`;
+    const url = `${proxyUrl.replace(/\/$/, "")}/api/orders?status=closed&limit=50&direction=desc`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`Orders request failed (${res.status})`);
     const orders = await res.json();
     const filled = orders.filter((o) => o.status === "filled");
-    if (!filled.length) {
+
+    renderTradeStats(computeTradeStats(filled));
+
+    const recent = filled.slice(0, 8);
+    if (!recent.length) {
       feedList.innerHTML = '<div class="feed-empty">No filled orders yet.</div>';
       return;
     }
     feedList.innerHTML = "";
-    filled.forEach((o) => {
+    recent.forEach((o) => {
       const isBuy = o.side === "buy";
       const price = o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?";
       const qty = o.filled_qty || o.qty;
@@ -317,7 +390,122 @@ async function fetchAndRenderFeed(headers, proxyUrl) {
     });
   } catch (e) {
     feedList.innerHTML = `<div class="feed-empty">Couldn't load order feed: ${e.message}</div>`;
+    resetTradeStats();
   }
+}
+
+function computeTradeStats(filledDesc) {
+  const filled = filledDesc.slice().reverse();
+  const openBuys = {};
+  let wins = 0, losses = 0, totalTrades = 0, sumWinPct = 0, sumLossPct = 0;
+  filled.forEach((o) => {
+    const sym = o.symbol;
+    const qty = parseFloat(o.filled_qty || o.qty);
+    const price = parseFloat(o.filled_avg_price);
+    if (!qty || !price) return;
+    if (o.side === "buy") {
+      if (!openBuys[sym]) openBuys[sym] = [];
+      openBuys[sym].push({ qty, price });
+    } else if (o.side === "sell") {
+      let remaining = qty;
+      while (remaining > 0 && openBuys[sym] && openBuys[sym].length) {
+        const lot = openBuys[sym][0];
+        const matchQty = Math.min(remaining, lot.qty);
+        const pl = ((price - lot.price) / lot.price) * 100;
+        totalTrades++;
+        if (pl >= 0) { wins++; sumWinPct += pl; } else { losses++; sumLossPct += pl; }
+        lot.qty -= matchQty;
+        remaining -= matchQty;
+        if (lot.qty <= 0) openBuys[sym].shift();
+      }
+    }
+  });
+  return {
+    totalTrades,
+    winRate: totalTrades ? (wins / totalTrades) * 100 : 0,
+    avgWin: wins ? sumWinPct / wins : 0,
+    avgLoss: losses ? sumLossPct / losses : 0,
+  };
+}
+
+function renderTradeStats(stats) {
+  document.getElementById("statTotalTrades").textContent = stats.totalTrades;
+  document.getElementById("statWinRate").textContent = stats.totalTrades ? stats.winRate.toFixed(0) + "%" : "&mdash;";
+  document.getElementById("statAvgWin").textContent = stats.totalTrades ? (stats.avgWin >= 0 ? "+" : "") + stats.avgWin.toFixed(2) + "%" : "&mdash;";
+  document.getElementById("statAvgLoss").textContent = stats.totalTrades ? stats.avgLoss.toFixed(2) + "%" : "&mdash;";
+}
+
+function resetTradeStats() {
+  renderTradeStats({ totalTrades: 0, winRate: 0, avgWin: 0, avgLoss: 0 });
+}
+
+async function fetchMarketStatus(headers, baseUrl, proxyUrl) {
+  const badge = document.getElementById("marketBadge");
+  try {
+    const url = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/clock` : `${baseUrl}/v2/clock`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error();
+    const clock = await res.json();
+    badge.style.display = "inline-block";
+    badge.textContent = clock.is_open ? "Market open" : "Market closed";
+    badge.className = "market-badge " + (clock.is_open ? "open" : "closed");
+  } catch (e) {
+    badge.style.display = "none";
+  }
+}
+
+async function fetchEquityHistory(headers, baseUrl, proxyUrl) {
+  const chartWrap = document.getElementById("equityChartWrap");
+  const barsWrap = document.getElementById("dailyBarsWrap");
+  try {
+    const url = proxyUrl
+      ? `${proxyUrl.replace(/\/$/, "")}/api/portfolio-history?period=1M&timeframe=1D`
+      : `${baseUrl}/v2/account/portfolio/history?period=1M&timeframe=1D`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Portfolio history request failed (${res.status})`);
+    const data = await res.json();
+    const equity = (data.equity || []).filter((v) => v != null);
+    renderEquityChart(equity, chartWrap);
+    renderDailyBars(equity, barsWrap);
+  } catch (e) {
+    chartWrap.innerHTML = `<div class="feed-empty">Couldn't load equity history: ${e.message}</div>`;
+    barsWrap.innerHTML = "";
+  }
+}
+
+function renderEquityChart(equity, wrap) {
+  if (equity.length < 2) {
+    wrap.innerHTML = '<div class="feed-empty">Not enough history yet.</div>';
+    return;
+  }
+  const w = 680, h = 120, pad = 8;
+  const min = Math.min(...equity), max = Math.max(...equity);
+  const range = (max - min) || 1;
+  const stepX = (w - 2 * pad) / (equity.length - 1);
+  const points = equity.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (h - 2 * pad) * (1 - (v - min) / range);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const color = equity[equity.length - 1] >= equity[0] ? "#10B981" : "#DC2626";
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:120px;display:block;">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderDailyBars(equity, wrap) {
+  const diffs = [];
+  for (let i = 1; i < equity.length; i++) diffs.push(equity[i] - equity[i - 1]);
+  const last7 = diffs.slice(-7);
+  if (!last7.length) { wrap.innerHTML = ""; return; }
+  const maxAbs = Math.max(...last7.map((d) => Math.abs(d)), 1);
+  wrap.innerHTML = last7.map((d) => {
+    const pct = Math.max(8, (Math.abs(d) / maxAbs) * 100);
+    const color = d >= 0 ? "#10B981" : "#DC2626";
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+      <div style="width:60%;height:${pct}%;background:${color};border-radius:2px;"></div>
+    </div>`;
+  }).join("");
 }
 
 function showDemo() {
@@ -326,7 +514,7 @@ function showDemo() {
 }
 showDemo();
 
-async function computeSignals(headers, baseData, proxyUrl) {
+async function computeSignals(headers, proxyUrl) {
   const symbols = WATCHLIST.join(",");
   const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&start=${start}&limit=1000&feed=iex`;
@@ -358,6 +546,61 @@ async function computeSignals(headers, baseData, proxyUrl) {
   });
 }
 
+async function loadAllData(isBackgroundRefresh) {
+  if (!session) return;
+  const { headers, baseUrl, proxyUrl } = session;
+  const errorMsg = document.getElementById("errorMsg");
+  const btn = document.getElementById("connectBtn");
+
+  try {
+    const acctUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/account` : `${baseUrl}/v2/account`;
+    const posUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/positions` : `${baseUrl}/v2/positions`;
+
+    const acctRes = await fetch(acctUrl, { headers });
+    if (!acctRes.ok) throw new Error(`Account request failed (${acctRes.status})`);
+    const acct = await acctRes.json();
+
+    const posRes = await fetch(posUrl, { headers });
+    if (!posRes.ok) throw new Error(`Positions request failed (${posRes.status})`);
+    const positions = await posRes.json();
+
+    const equity = parseFloat(acct.equity);
+    const lastEquity = parseFloat(acct.last_equity);
+    const dayPL = equity - lastEquity;
+    const dayPLPct = lastEquity ? (dayPL / lastEquity) * 100 : 0;
+
+    const signals = await computeSignals(headers, proxyUrl);
+
+    renderStats(equity, parseFloat(acct.cash), dayPL, dayPLPct, positions.length);
+    renderWatchlist(signals);
+    renderPositions(positions);
+    fetchAndRenderFeed(headers, proxyUrl);
+    fetchMarketStatus(headers, baseUrl, proxyUrl);
+    fetchEquityHistory(headers, baseUrl, proxyUrl);
+
+    if (!isBackgroundRefresh) {
+      connected = true;
+      document.getElementById("statusDot").classList.add("live");
+      document.getElementById("statusText").textContent = "Live";
+      document.getElementById("demoBanner").style.display = "none";
+      document.getElementById("connectToggleLabel").textContent = "Connected to Alpaca";
+      document.getElementById("formFields").style.display = "none";
+      document.getElementById("disconnectBtn").style.display = "inline-block";
+      document.getElementById("connectBody").style.display = "none";
+      document.getElementById("connectToggleIcon").textContent = "+";
+    }
+  } catch (e) {
+    const corsHint = (e.message === "Failed to fetch" || e.message === "Load failed")
+      ? " This looks like a network/CORS block. Make sure your proxy worker URL is correct and deployed."
+      : "";
+    errorMsg.textContent = e.message + corsHint;
+    errorMsg.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Connect";
+  }
+}
+
 document.getElementById("connectToggle").addEventListener("click", () => {
   const body = document.getElementById("connectBody");
   const icon = document.getElementById("connectToggleIcon");
@@ -380,66 +623,34 @@ document.getElementById("connectBtn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Connecting...";
 
-  const headers = { "Apca-Api-Key-Id": apiKey, "Apca-Api-Secret-Key": secretKey };
-
-  try {
-    const acctUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/account` : `${baseUrl}/v2/account`;
-    const posUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/positions` : `${baseUrl}/v2/positions`;
-
-    const acctRes = await fetch(acctUrl, { headers });
-    if (!acctRes.ok) throw new Error(`Account request failed (${acctRes.status})`);
-    const acct = await acctRes.json();
-
-    const posRes = await fetch(posUrl, { headers });
-    if (!posRes.ok) throw new Error(`Positions request failed (${posRes.status})`);
-    const positions = await posRes.json();
-
-    const equity = parseFloat(acct.equity);
-    const lastEquity = parseFloat(acct.last_equity);
-    const dayPL = equity - lastEquity;
-    const dayPLPct = lastEquity ? (dayPL / lastEquity) * 100 : 0;
-
-    const signals = await computeSignals(headers, acct, proxyUrl);
-
-    renderStats(equity, parseFloat(acct.cash), dayPL, dayPLPct, positions.length);
-    renderWatchlist(signals);
-    renderPositions(positions);
-    fetchAndRenderFeed(headers, proxyUrl);
-
-    connected = true;
-    document.getElementById("statusDot").classList.add("live");
-    document.getElementById("statusText").textContent = "Live";
-    document.getElementById("demoBanner").style.display = "none";
-    document.getElementById("connectToggleLabel").textContent = "Connected to Alpaca";
-    document.getElementById("formFields").style.display = "none";
-    document.getElementById("disconnectBtn").style.display = "inline-block";
-    document.getElementById("connectBody").style.display = "none";
-    document.getElementById("connectToggleIcon").textContent = "+";
-  } catch (e) {
-    const corsHint = (e.message === "Failed to fetch" || e.message === "Load failed")
-      ? " This looks like a network/CORS block. Make sure your proxy worker URL is correct and deployed."
-      : "";
-    errorMsg.textContent = e.message + corsHint;
-    errorMsg.style.display = "block";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Connect";
-  }
+  session = {
+    headers: { "Apca-Api-Key-Id": apiKey, "Apca-Api-Secret-Key": secretKey },
+    baseUrl,
+    proxyUrl,
+  };
+  refreshCountdown = REFRESH_SECONDS;
+  await loadAllData(false);
 });
 
 document.getElementById("disconnectBtn").addEventListener("click", () => {
   connected = false;
+  session = null;
   document.getElementById("apiKey").value = "";
   document.getElementById("secretKey").value = "";
   document.getElementById("statusDot").classList.remove("live");
   document.getElementById("statusText").textContent = "Demo data";
   document.getElementById("demoBanner").style.display = "block";
+  document.getElementById("killWarnBanner").style.display = "none";
+  document.getElementById("marketBadge").style.display = "none";
   document.getElementById("connectToggleLabel").textContent = "Connect your Alpaca account";
   document.getElementById("formFields").style.display = "block";
   document.getElementById("disconnectBtn").style.display = "none";
   document.getElementById("errorMsg").style.display = "none";
   document.getElementById("positionsBody").innerHTML = '<tr><td colspan="6" class="feed-empty">Connect to see open positions.</td></tr>';
   document.getElementById("feedList").innerHTML = '<div class="feed-empty">Connect to see recent orders.</div>';
+  document.getElementById("equityChartWrap").innerHTML = '<div class="feed-empty">Connect to see equity history.</div>';
+  document.getElementById("dailyBarsWrap").innerHTML = "";
+  resetTradeStats();
   showDemo();
 });
 </script>
