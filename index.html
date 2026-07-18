@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,13 +146,20 @@
   .risk-none { color: var(--text-muted); }
   .feed-list { padding: 4px 0; }
   .feed-empty { padding: 16px 20px; font-size: 13px; color: var(--text-muted); }
-  .feed-item { padding: 10px 20px; border-bottom: 1px solid var(--border-soft); position: relative; }
+  .feed-item { padding: 10px 20px; border-bottom: 1px solid var(--border-soft); }
   .feed-item:last-child { border-bottom: none; }
-  .feed-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .feed-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .feed-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; min-width: 0; }
   .feed-title.buy { color: #10B981; }
   .feed-title.sell { color: #EF4444; }
   .feed-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-  .feed-amt { position: absolute; top: 10px; right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); }
+  .feed-amt { font-family: monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+
+  @media (max-width: 640px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .stats3 { grid-template-columns: 1fr 1fr; }
+    .rules-grid { grid-template-columns: 1fr; }
+  }
 
   .rules-card { margin-bottom: 24px; }
   .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; padding: 16px 20px; }
@@ -720,8 +728,10 @@ async function fetchAndRenderFeed(headers, proxyUrl) {
       const div = document.createElement("div");
       div.className = "feed-item";
       div.innerHTML = `
-        <div class="feed-amt">$${price} &times; ${qty}</div>
-        <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${o.symbol}</div>
+        <div class="feed-row">
+          <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${o.symbol}</div>
+          <div class="feed-amt">$${price} &times; ${qty}</div>
+        </div>
         <div class="feed-sub">${reason}</div>
       `;
       feedList.appendChild(div);
