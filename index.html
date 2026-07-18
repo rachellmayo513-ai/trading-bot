@@ -1,0 +1,68 @@
+name: Trading Bot
+
+on:
+  schedule:
+    # Cron times are in UTC. US market hours (9:30 AM-4:00 PM ET) are
+    # roughly 13:30-20:00 UTC during EDT (summer) and 14:30-21:00 UTC during
+    # EST (winter). This schedule covers both by running 13:30-21:00 UTC;
+    # the script's own is_market_hours() check filters out the extra hour
+    # on either end depending on the season, so no trades happen outside
+    # real market hours even though the cron window is slightly wider.
+
+    # Scan every 5 minutes, weekdays, 13:30-20:59 UTC
+    - cron: "*/5 13-20 * * 1-5"
+    # Kill-switch check every minute, weekdays, same window
+    - cron: "* 13-20 * * 1-5"
+    # Daily scorecard once at 20:01 UTC (4:01 PM EDT) on weekdays
+    - cron: "1 20 * * 1-5"
+
+  # Lets you manually trigger a run from the GitHub Actions tab for testing
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which job to run"
+        required: true
+        default: "heartbeat"
+        type: choice
+        options:
+          - scan
+          - killswitch
+          - scorecard
+          - heartbeat
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install alpaca-trade-api requests yfinance pandas
+
+      - name: Determine which job to run
+        id: pick_job
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "job=${{ github.event.inputs.job }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "1 20 * * 1-5" ]; then
+            echo "job=scorecard" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "* 13-20 * * 1-5" ]; then
+            echo "job=killswitch" >> "$GITHUB_OUTPUT"
+          else
+            echo "job=scan" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run trading bot job
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python trading_bot.py ${{ steps.pick_job.outputs.job }}
