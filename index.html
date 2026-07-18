@@ -1,15 +1,148 @@
-import React, { useState, useEffect, useCallback } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trading Bot Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #F6F5EF;
+    color: #1c1917;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; }
+  .sub { font-size: 13px; color: #78716c; margin-top: 4px; }
+  .clock { font-family: monospace; font-size: 12px; color: #a8a29e; text-align: right; }
+  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: #78716c; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #d6d3d1; }
+  .dot.live { background: #10b981; }
 
+  .card { background: #fff; border: 1px solid #e7e5e4; border-radius: 12px; }
+  .connect-panel { margin-bottom: 24px; overflow: hidden; }
+  .connect-toggle {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px; background: none; border: none; font-size: 14px; font-weight: 500;
+    color: #44403c; cursor: pointer;
+  }
+  .connect-body { padding: 0 20px 20px; border-top: 1px solid #f5f5f4; }
+  label { display: block; font-size: 12px; color: #78716c; margin-bottom: 4px; margin-top: 12px; }
+  input[type=text], input[type=password] {
+    width: 100%; border: 1px solid #e7e5e4; border-radius: 8px; padding: 10px 12px;
+    font-size: 13px; font-family: monospace; outline: none;
+  }
+  input:focus { box-shadow: 0 0 0 2px #d6d3d1; }
+  .hint { font-size: 12px; color: #a8a29e; margin-top: 6px; line-height: 1.4; }
+  button.primary {
+    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #1c1917;
+    color: #fff; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+  }
+  button.primary:disabled { opacity: 0.4; cursor: default; }
+  button.secondary {
+    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #fff;
+    color: #44403c; font-size: 13px; font-weight: 500; border: 1px solid #e7e5e4; cursor: pointer;
+  }
+  .error { font-size: 12px; color: #dc2626; margin-top: 12px; line-height: 1.5; }
+
+  .demo-banner {
+    margin-bottom: 24px; font-size: 12px; color: #78716c; background: #fffbeb;
+    border: 1px solid #fde68a; border-radius: 8px; padding: 10px 16px;
+  }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .stat { padding: 16px; }
+  .stat-label { font-size: 12px; color: #78716c; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; font-family: monospace; }
+  .stat-value.up { color: #059669; }
+  .stat-value.down { color: #e11d48; }
+  .stat-sub { font-size: 14px; font-weight: 400; }
+
+  .watchlist-head { padding: 12px 20px; border-bottom: 1px solid #f5f5f4; }
+  .watchlist-title { font-size: 14px; font-weight: 500; }
+  .watchlist-sub { font-size: 12px; color: #a8a29e; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 400; font-size: 12px; color: #a8a29e; padding: 8px 20px; border-bottom: 1px solid #f5f5f4; }
+  th:last-child { text-align: right; }
+  td { padding: 12px 20px; border-bottom: 1px solid #fafaf9; }
+  tr:last-child td { border-bottom: none; }
+  td.ticker { font-weight: 500; }
+  td.mono { font-family: monospace; }
+  td.ma { font-family: monospace; color: #78716c; }
+  td.signal { text-align: right; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid; }
+  .badge.Buy { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .badge.Sell { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+  .badge.None { background: #f5f5f4; color: #78716c; border-color: #e7e5e4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>Trading Bot Dashboard</h1>
+      <div class="sub">Alpaca &middot; 20-bar MA crossover &middot; trailing-stop risk engine</div>
+    </div>
+    <div>
+      <div class="clock" id="clock"></div>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Demo data</span></div>
+    </div>
+  </div>
+
+  <div class="card connect-panel">
+    <button class="connect-toggle" id="connectToggle">
+      <span id="connectToggleLabel">Connect your Alpaca account</span>
+      <span id="connectToggleIcon">&minus;</span>
+    </button>
+    <div class="connect-body" id="connectBody">
+      <div id="formFields">
+        <label>API Key ID</label>
+        <input type="text" id="apiKey" placeholder="PK..." />
+        <label>Secret Key</label>
+        <input type="password" id="secretKey" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
+        <label>Base URL</label>
+        <input type="text" id="baseUrl" value="https://paper-api.alpaca.markets" />
+        <div class="hint">Use paper-api.alpaca.markets for paper trading keys. Keys stay in this browser tab only.</div>
+        <label>Proxy URL (optional &mdash; needed if Alpaca blocks direct requests)</label>
+        <input type="text" id="proxyUrl" placeholder="https://your-worker.your-subdomain.workers.dev" />
+        <button class="primary" id="connectBtn">Connect</button>
+        <div class="error" id="errorMsg" style="display:none;"></div>
+      </div>
+      <button class="secondary" id="disconnectBtn" style="display:none;">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="demo-banner" id="demoBanner">Showing sample data. Connect your Alpaca paper account above to see live numbers.</div>
+
+  <div class="stats">
+    <div class="card stat"><div class="stat-label">Total Equity</div><div class="stat-value" id="equityVal">$12,500.00</div></div>
+    <div class="card stat"><div class="stat-label">Day P/L</div><div class="stat-value up" id="dayPLVal">+$125.40 <span class="stat-sub" id="dayPLPct">+1.01%</span></div></div>
+    <div class="card stat"><div class="stat-label">Cash Reserves</div><div class="stat-value" id="cashVal">$4,800.00</div></div>
+    <div class="card stat"><div class="stat-label">Open Positions</div><div class="stat-value" id="positionsVal">3</div></div>
+  </div>
+
+  <div class="card">
+    <div class="watchlist-head">
+      <div class="watchlist-title">Watchlist</div>
+      <div class="watchlist-sub">MA crossover scanner &middot; 5min bars</div>
+    </div>
+    <table>
+      <thead><tr><th>Ticker</th><th>Price</th><th>20-bar MA</th><th>Signal</th></tr></thead>
+      <tbody id="watchlistBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
 const WATCHLIST = ["AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN"];
-const MA_WINDOW = 15;
+const MA_WINDOW = 20;
 const TIMEFRAME = "5Min";
 
 const DEMO = {
-  equity: 12500.0,
-  cash: 4800.0,
-  dayPL: 125.4,
-  dayPLPct: 1.01,
-  openPositions: 3,
+  equity: 12500.0, cash: 4800.0, dayPL: 125.4, dayPLPct: 1.01, openPositions: 3,
   watchlist: [
     { ticker: "AAPL", price: 232.45, ma: 229.1, signal: "Buy" },
     { ticker: "MSFT", price: 442.8, ma: 445.2, signal: "Sell" },
@@ -20,313 +153,160 @@ const DEMO = {
   ],
 };
 
+let connected = false;
+
 function fmtMoney(n) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-function SignalBadge({ signal }) {
-  const styles = {
-    Buy: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    Sell: "bg-rose-50 text-rose-700 border-rose-200",
-    None: "bg-stone-100 text-stone-500 border-stone-200",
-  };
-  return (
-    <span
-      className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium border ${styles[signal] || styles.None}`}
-    >
-      {signal}
-    </span>
-  );
+function tick() {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString("en-US", { hour12: true });
+}
+setInterval(tick, 1000);
+tick();
+
+function renderWatchlist(rows) {
+  const body = document.getElementById("watchlistBody");
+  body.innerHTML = "";
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="ticker">${row.ticker}</td>
+      <td class="mono">${row.price != null ? "$" + row.price.toFixed(2) : "&mdash;"}</td>
+      <td class="ma">${row.ma != null ? "$" + row.ma.toFixed(2) : "&mdash;"}</td>
+      <td class="signal"><span class="badge ${row.signal}">${row.signal}</span></td>
+    `;
+    body.appendChild(tr);
+  });
 }
 
-export default function TradingBotDashboard() {
-  const [now, setNow] = useState(new Date());
-  const [showConnect, setShowConnect] = useState(true);
-  const [apiKey, setApiKey] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [baseUrl, setBaseUrl] = useState("https://paper-api.alpaca.markets");
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const [account, setAccount] = useState(null);
-  const [openPositions, setOpenPositions] = useState(null);
-  const [watchlist, setWatchlist] = useState(null);
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const alpacaHeaders = {
-    "APCA-API-KEY-ID": apiKey,
-    "APCA-API-SECRET-KEY": secretKey,
-  };
-
-  const computeSignals = useCallback(async () => {
-    const symbols = WATCHLIST.join(",");
-    const res = await fetch(
-      `https://data.alpaca.markets/v2/stocks/bars?symbols=${symbols}&timeframe=${TIMEFRAME}&limit=${MA_WINDOW + 2}&feed=iex`,
-      { headers: alpacaHeaders }
-    );
-    if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
-    const data = await res.json();
-    const bars = data.bars || {};
-
-    return WATCHLIST.map((ticker) => {
-      const series = bars[ticker] || [];
-      if (series.length < MA_WINDOW + 1) {
-        return { ticker, price: null, ma: null, signal: "None" };
-      }
-      const closes = series.map((b) => b.c);
-      const maAt = (endIdxExclusive) => {
-        const window = closes.slice(endIdxExclusive - MA_WINDOW, endIdxExclusive);
-        return window.reduce((a, b) => a + b, 0) / window.length;
-      };
-      const n = closes.length;
-      const currentClose = closes[n - 1];
-      const previousClose = closes[n - 2];
-      const currentMA = maAt(n);
-      const previousMA = maAt(n - 1);
-
-      let signal = "None";
-      if (previousClose < previousMA && currentClose > currentMA) signal = "Buy";
-      else if (previousClose > previousMA && currentClose < currentMA) signal = "Sell";
-
-      return { ticker, price: currentClose, ma: currentMA, signal };
-    });
-  }, [apiKey, secretKey]);
-
-  const connect = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const acctRes = await fetch(`${baseUrl}/v2/account`, { headers: alpacaHeaders });
-      if (!acctRes.ok) throw new Error(`Account request failed (${acctRes.status})`);
-      const acct = await acctRes.json();
-
-      const posRes = await fetch(`${baseUrl}/v2/positions`, { headers: alpacaHeaders });
-      if (!posRes.ok) throw new Error(`Positions request failed (${posRes.status})`);
-      const positions = await posRes.json();
-
-      const equity = parseFloat(acct.equity);
-      const lastEquity = parseFloat(acct.last_equity);
-      const dayPL = equity - lastEquity;
-      const dayPLPct = lastEquity ? (dayPL / lastEquity) * 100 : 0;
-
-      setAccount({
-        equity,
-        cash: parseFloat(acct.cash),
-        dayPL,
-        dayPLPct,
-      });
-      setOpenPositions(positions.length);
-
-      const signals = await computeSignals();
-      setWatchlist(signals);
-
-      setConnected(true);
-      setShowConnect(false);
-    } catch (e) {
-      const corsHint =
-        e.message === "Failed to fetch"
-          ? " This usually means the browser blocked the request (CORS) — direct browser access may not work with Alpaca's API and a small proxy server would be needed instead."
-          : "";
-      setError(e.message + corsHint);
-      setConnected(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const disconnect = () => {
-    setConnected(false);
-    setAccount(null);
-    setOpenPositions(null);
-    setWatchlist(null);
-    setApiKey("");
-    setSecretKey("");
-    setShowConnect(true);
-    setError("");
-  };
-
-  const displayEquity = connected && account ? account.equity : DEMO.equity;
-  const displayCash = connected && account ? account.cash : DEMO.cash;
-  const displayDayPL = connected && account ? account.dayPL : DEMO.dayPL;
-  const displayDayPLPct = connected && account ? account.dayPLPct : DEMO.dayPLPct;
-  const displayPositions = connected && openPositions !== null ? openPositions : DEMO.openPositions;
-  const displayWatchlist = connected && watchlist ? watchlist : DEMO.watchlist;
-
-  return (
-    <div className="w-full min-h-full bg-[#F6F5EF] text-stone-900 font-sans p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Trading Bot Dashboard</h1>
-            <p className="text-sm text-stone-500 mt-1">
-              Alpaca &middot; {MA_WINDOW}-bar MA crossover &middot; trailing-stop risk engine
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-stone-400 font-mono">
-              {now.toLocaleTimeString("en-US", { hour12: true })}
-            </div>
-            <div className="mt-1 flex items-center gap-1.5 justify-end">
-              <span
-                className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-500" : "bg-stone-300"}`}
-              />
-              <span className="text-xs text-stone-500">
-                {connected ? "Live" : "Demo data"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Connect panel */}
-        <div className="bg-white border border-stone-200 rounded-xl mb-6 overflow-hidden">
-          <button
-            onClick={() => setShowConnect((s) => !s)}
-            className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-stone-700"
-          >
-            <span>{connected ? "Connected to Alpaca" : "Connect your Alpaca account"}</span>
-            <span className="text-stone-400">{showConnect ? "\u2212" : "+"}</span>
-          </button>
-
-          {showConnect && (
-            <div className="px-5 pb-5 border-t border-stone-100 pt-4">
-              {!connected ? (
-                <>
-                  <div className="grid sm:grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className="block text-xs text-stone-500 mb-1">API Key ID</label>
-                      <input
-                        type="text"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="PK..."
-                        className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-500 mb-1">Secret Key</label>
-                      <input
-                        type="password"
-                        value={secretKey}
-                        onChange={(e) => setSecretKey(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-300"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-xs text-stone-500 mb-1">Base URL</label>
-                    <input
-                      type="text"
-                      value={baseUrl}
-                      onChange={(e) => setBaseUrl(e.target.value)}
-                      className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-300"
-                    />
-                    <p className="text-xs text-stone-400 mt-1">
-                      Use paper-api.alpaca.markets for paper trading keys. Keys stay in this
-                      browser tab only — nothing is saved or sent anywhere except directly to
-                      Alpaca.
-                    </p>
-                  </div>
-                  <button
-                    onClick={connect}
-                    disabled={!apiKey || !secretKey || loading}
-                    className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium disabled:opacity-40"
-                  >
-                    {loading ? "Connecting..." : "Connect"}
-                  </button>
-                  {error && (
-                    <p className="text-xs text-rose-600 mt-3 leading-relaxed">{error}</p>
-                  )}
-                </>
-              ) : (
-                <button
-                  onClick={disconnect}
-                  className="px-4 py-2 rounded-lg border border-stone-200 text-sm font-medium text-stone-700"
-                >
-                  Disconnect
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {!connected && (
-          <div className="mb-6 text-xs text-stone-500 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
-            Showing sample data. Connect your Alpaca paper account above to see live numbers.
-          </div>
-        )}
-
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
-            <div className="text-xs text-stone-500 mb-1">Total Equity</div>
-            <div className="text-2xl font-semibold font-mono">{fmtMoney(displayEquity)}</div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
-            <div className="text-xs text-stone-500 mb-1">Day P/L</div>
-            <div
-              className={`text-2xl font-semibold font-mono ${displayDayPL >= 0 ? "text-emerald-600" : "text-rose-600"}`}
-            >
-              {displayDayPL >= 0 ? "+" : ""}
-              {fmtMoney(displayDayPL)}{" "}
-              <span className="text-sm font-normal">
-                {displayDayPLPct >= 0 ? "+" : ""}
-                {displayDayPLPct.toFixed(2)}%
-              </span>
-            </div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
-            <div className="text-xs text-stone-500 mb-1">Cash Reserves</div>
-            <div className="text-2xl font-semibold font-mono">{fmtMoney(displayCash)}</div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
-            <div className="text-xs text-stone-500 mb-1">Open Positions</div>
-            <div className="text-2xl font-semibold font-mono">{displayPositions}</div>
-          </div>
-        </div>
-
-        {/* Watchlist */}
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-stone-100">
-            <div className="text-sm font-medium">Watchlist</div>
-            <div className="text-xs text-stone-400">
-              MA crossover scanner &middot; {TIMEFRAME.toLowerCase()} bars
-            </div>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-stone-400 border-b border-stone-100">
-                <th className="font-normal px-5 py-2">Ticker</th>
-                <th className="font-normal px-5 py-2">Price</th>
-                <th className="font-normal px-5 py-2">{MA_WINDOW}-bar MA</th>
-                <th className="font-normal px-5 py-2 text-right">Signal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayWatchlist.map((row) => (
-                <tr key={row.ticker} className="border-b border-stone-50 last:border-0">
-                  <td className="px-5 py-3 font-medium">{row.ticker}</td>
-                  <td className="px-5 py-3 font-mono">
-                    {row.price != null ? `$${row.price.toFixed(2)}` : "—"}
-                  </td>
-                  <td className="px-5 py-3 font-mono text-stone-500">
-                    {row.ma != null ? `$${row.ma.toFixed(2)}` : "—"}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <SignalBadge signal={row.signal} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+function renderStats(equity, cash, dayPL, dayPLPct, positions) {
+  document.getElementById("equityVal").textContent = fmtMoney(equity);
+  document.getElementById("cashVal").textContent = fmtMoney(cash);
+  document.getElementById("positionsVal").textContent = positions;
+  const plEl = document.getElementById("dayPLVal");
+  const sign = dayPL >= 0 ? "+" : "";
+  plEl.className = "stat-value " + (dayPL >= 0 ? "up" : "down");
+  plEl.innerHTML = `${sign}${fmtMoney(dayPL)} <span class="stat-sub">${sign}${dayPLPct.toFixed(2)}%</span>`;
 }
+
+function showDemo() {
+  renderStats(DEMO.equity, DEMO.cash, DEMO.dayPL, DEMO.dayPLPct, DEMO.openPositions);
+  renderWatchlist(DEMO.watchlist);
+}
+showDemo();
+
+async function computeSignals(headers, baseData, proxyUrl) {
+  const symbols = WATCHLIST.join(",");
+  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&limit=${MA_WINDOW + 2}&feed=iex`;
+  const barsUrl = proxyUrl
+    ? `${proxyUrl.replace(/\/$/, "")}/api/bars?${barsQuery}`
+    : `https://data.alpaca.markets/v2/stocks/bars?${barsQuery}`;
+  const res = await fetch(barsUrl, { headers });
+  if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
+  const data = await res.json();
+  const bars = data.bars || {};
+
+  return WATCHLIST.map((ticker) => {
+    const series = bars[ticker] || [];
+    if (series.length < MA_WINDOW + 1) return { ticker, price: null, ma: null, signal: "None" };
+    const closes = series.map((b) => b.c);
+    const maAt = (endIdxExclusive) => {
+      const window = closes.slice(endIdxExclusive - MA_WINDOW, endIdxExclusive);
+      return window.reduce((a, b) => a + b, 0) / window.length;
+    };
+    const n = closes.length;
+    const currentClose = closes[n - 1];
+    const previousClose = closes[n - 2];
+    const currentMA = maAt(n);
+    const previousMA = maAt(n - 1);
+    let signal = "None";
+    if (previousClose < previousMA && currentClose > currentMA) signal = "Buy";
+    else if (previousClose > previousMA && currentClose < currentMA) signal = "Sell";
+    return { ticker, price: currentClose, ma: currentMA, signal };
+  });
+}
+
+document.getElementById("connectToggle").addEventListener("click", () => {
+  const body = document.getElementById("connectBody");
+  const icon = document.getElementById("connectToggleIcon");
+  const isOpen = body.style.display !== "none";
+  body.style.display = isOpen ? "none" : "block";
+  icon.textContent = isOpen ? "+" : "\u2212";
+});
+
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  const apiKey = document.getElementById("apiKey").value.trim();
+  const secretKey = document.getElementById("secretKey").value.trim();
+  const baseUrl = document.getElementById("baseUrl").value.trim();
+  const proxyUrl = document.getElementById("proxyUrl").value.trim();
+  const errorMsg = document.getElementById("errorMsg");
+  const btn = document.getElementById("connectBtn");
+
+  if (!apiKey || !secretKey) return;
+
+  errorMsg.style.display = "none";
+  btn.disabled = true;
+  btn.textContent = "Connecting...";
+
+  const headers = { "Apca-Api-Key-Id": apiKey, "Apca-Api-Secret-Key": secretKey };
+
+  try {
+    const acctUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/account` : `${baseUrl}/v2/account`;
+    const posUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/positions` : `${baseUrl}/v2/positions`;
+
+    const acctRes = await fetch(acctUrl, { headers });
+    if (!acctRes.ok) throw new Error(`Account request failed (${acctRes.status})`);
+    const acct = await acctRes.json();
+
+    const posRes = await fetch(posUrl, { headers });
+    if (!posRes.ok) throw new Error(`Positions request failed (${posRes.status})`);
+    const positions = await posRes.json();
+
+    const equity = parseFloat(acct.equity);
+    const lastEquity = parseFloat(acct.last_equity);
+    const dayPL = equity - lastEquity;
+    const dayPLPct = lastEquity ? (dayPL / lastEquity) * 100 : 0;
+
+    const signals = await computeSignals(headers, acct, proxyUrl);
+
+    renderStats(equity, parseFloat(acct.cash), dayPL, dayPLPct, positions.length);
+    renderWatchlist(signals);
+
+    connected = true;
+    document.getElementById("statusDot").classList.add("live");
+    document.getElementById("statusText").textContent = "Live";
+    document.getElementById("demoBanner").style.display = "none";
+    document.getElementById("connectToggleLabel").textContent = "Connected to Alpaca";
+    document.getElementById("formFields").style.display = "none";
+    document.getElementById("disconnectBtn").style.display = "inline-block";
+    document.getElementById("connectBody").style.display = "none";
+    document.getElementById("connectToggleIcon").textContent = "+";
+  } catch (e) {
+    const corsHint = (e.message === "Failed to fetch" || e.message === "Load failed")
+      ? " This looks like a network/CORS block. Make sure your proxy worker URL is correct and deployed."
+      : "";
+    errorMsg.textContent = e.message + corsHint;
+    errorMsg.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Connect";
+  }
+});
+
+document.getElementById("disconnectBtn").addEventListener("click", () => {
+  connected = false;
+  document.getElementById("apiKey").value = "";
+  document.getElementById("secretKey").value = "";
+  document.getElementById("statusDot").classList.remove("live");
+  document.getElementById("statusText").textContent = "Demo data";
+  document.getElementById("demoBanner").style.display = "block";
+  document.getElementById("connectToggleLabel").textContent = "Connect your Alpaca account";
+  document.getElementById("formFields").style.display = "block";
+  document.getElementById("disconnectBtn").style.display = "none";
+  document.getElementById("errorMsg").style.display = "none";
+  showDemo();
+});
+</script>
+</body>
+</html>
