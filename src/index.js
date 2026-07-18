@@ -1,4 +1,4 @@
-export default {
+jsexport default {
   async fetch(request) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "*";
@@ -20,6 +20,8 @@ export default {
       targetUrl = "https://paper-api.alpaca.markets/v2/positions";
     } else if (url.pathname === "/api/bars") {
       targetUrl = "https://data.alpaca.markets/v2/stocks/bars" + url.search;
+    } else if (url.pathname === "/api/orders") {
+      targetUrl = "https://paper-api.alpaca.markets/v2/orders" + url.search;
     } else {
       return json({ error: "Unknown route" }, 404, origin);
     }
