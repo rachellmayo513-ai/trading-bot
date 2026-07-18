@@ -4,79 +4,82 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Trading Bot Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: #F6F5EF;
-    color: #1c1917;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #F8FAFC;
+    color: #1E293B;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     padding: 24px;
   }
   .wrap { max-width: 780px; margin: 0 auto; }
   .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-  h1 { font-size: 22px; font-weight: 600; margin: 0; }
-  .sub { font-size: 13px; color: #78716c; margin-top: 4px; }
-  .clock { font-family: monospace; font-size: 12px; color: #a8a29e; text-align: right; }
-  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: #78716c; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #d6d3d1; }
-  .dot.live { background: #10b981; }
+  h1 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 600; margin: 0; }
+  .sub { font-size: 13px; color: rgba(30,41,59,0.6); margin-top: 4px; }
+  .clock { font-family: monospace; font-size: 12px; color: rgba(30,41,59,0.45); text-align: right; }
+  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: rgba(30,41,59,0.6); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(30,41,59,0.25); }
+  .dot.live { background: #10B981; }
 
-  .card { background: #fff; border: 1px solid #e7e5e4; border-radius: 12px; }
+  .card { background: #FFFFFF; border: 1px solid rgba(30,41,59,0.1); border-radius: 12px; }
   .connect-panel { margin-bottom: 24px; overflow: hidden; }
   .connect-toggle {
     width: 100%; display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 20px; background: none; border: none; font-size: 14px; font-weight: 500;
-    color: #44403c; cursor: pointer;
+    padding: 12px 20px; background: none; border: none; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
+    color: #1E293B; cursor: pointer;
   }
-  .connect-body { padding: 0 20px 20px; border-top: 1px solid #f5f5f4; }
-  label { display: block; font-size: 12px; color: #78716c; margin-bottom: 4px; margin-top: 12px; }
+  .connect-body { padding: 0 20px 20px; border-top: 1px solid rgba(30,41,59,0.08); }
+  label { display: block; font-size: 12px; color: rgba(30,41,59,0.6); margin-bottom: 4px; margin-top: 12px; }
   input[type=text], input[type=password] {
-    width: 100%; border: 1px solid #e7e5e4; border-radius: 8px; padding: 10px 12px;
+    width: 100%; border: 1px solid rgba(30,41,59,0.15); border-radius: 8px; padding: 10px 12px;
     font-size: 13px; font-family: monospace; outline: none;
   }
-  input:focus { box-shadow: 0 0 0 2px #d6d3d1; }
-  .hint { font-size: 12px; color: #a8a29e; margin-top: 6px; line-height: 1.4; }
+  input:focus { box-shadow: 0 0 0 2px rgba(99,102,241,0.35); border-color: #6366F1; }
+  .hint { font-size: 12px; color: rgba(30,41,59,0.45); margin-top: 6px; line-height: 1.4; }
   button.primary {
-    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #1c1917;
-    color: #fff; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #6366F1;
+    color: #fff; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
   }
   button.primary:disabled { opacity: 0.4; cursor: default; }
   button.secondary {
     margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #fff;
-    color: #44403c; font-size: 13px; font-weight: 500; border: 1px solid #e7e5e4; cursor: pointer;
+    color: #1E293B; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; border: 1px solid rgba(30,41,59,0.15); cursor: pointer;
   }
-  .error { font-size: 12px; color: #dc2626; margin-top: 12px; line-height: 1.5; }
+  .error { font-size: 12px; color: #DC2626; margin-top: 12px; line-height: 1.5; }
 
   .demo-banner {
-    margin-bottom: 24px; font-size: 12px; color: #78716c; background: #fffbeb;
-    border: 1px solid #fde68a; border-radius: 8px; padding: 10px 16px;
+    margin-bottom: 24px; font-size: 12px; color: rgba(30,41,59,0.6); background: #EEF2FF;
+    border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; padding: 10px 16px;
   }
 
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
   .stat { padding: 16px; }
-  .stat-label { font-size: 12px; color: #78716c; margin-bottom: 4px; }
-  .stat-value { font-size: 24px; font-weight: 600; font-family: monospace; }
-  .stat-value.up { color: #059669; }
-  .stat-value.down { color: #e11d48; }
-  .stat-sub { font-size: 14px; font-weight: 400; }
+  .stat-label { font-size: 12px; color: rgba(30,41,59,0.6); margin-bottom: 4px; }
+  .stat-value { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 600; }
+  .stat-value.up { color: #10B981; }
+  .stat-value.down { color: #DC2626; }
+  .stat-sub { font-size: 14px; font-weight: 400; font-family: 'Manrope', sans-serif; }
 
-  .watchlist-head { padding: 12px 20px; border-bottom: 1px solid #f5f5f4; }
-  .watchlist-title { font-size: 14px; font-weight: 500; }
-  .watchlist-sub { font-size: 12px; color: #a8a29e; }
+  .watchlist-head { padding: 12px 20px; border-bottom: 1px solid rgba(30,41,59,0.08); }
+  .watchlist-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; }
+  .watchlist-sub { font-size: 12px; color: rgba(30,41,59,0.45); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; font-weight: 400; font-size: 12px; color: #a8a29e; padding: 8px 20px; border-bottom: 1px solid #f5f5f4; }
+  th { text-align: left; font-weight: 400; font-size: 12px; color: rgba(30,41,59,0.45); padding: 8px 20px; border-bottom: 1px solid rgba(30,41,59,0.08); }
   th:last-child { text-align: right; }
-  td { padding: 12px 20px; border-bottom: 1px solid #fafaf9; }
+  td { padding: 12px 20px; border-bottom: 1px solid rgba(30,41,59,0.05); }
   tr:last-child td { border-bottom: none; }
-  td.ticker { font-weight: 500; }
+  td.ticker { font-weight: 600; }
   td.mono { font-family: monospace; }
-  td.ma { font-family: monospace; color: #78716c; }
+  td.ma { font-family: monospace; color: rgba(30,41,59,0.6); }
   td.signal { text-align: right; }
   .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid; }
-  .badge.Buy { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-  .badge.Sell { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
-  .badge.None { background: #f5f5f4; color: #78716c; border-color: #e7e5e4; }
+  .badge.Buy { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
+  .badge.Sell { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+  .badge.None { background: #F1F5F9; color: rgba(30,41,59,0.5); border-color: rgba(30,41,59,0.1); }
 </style>
 </head>
 <body>
@@ -198,7 +201,8 @@ showDemo();
 
 async function computeSignals(headers, baseData, proxyUrl) {
   const symbols = WATCHLIST.join(",");
-  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&limit=${MA_WINDOW + 2}&feed=iex`;
+  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&start=${start}&limit=1000&feed=iex`;
   const barsUrl = proxyUrl
     ? `${proxyUrl.replace(/\/$/, "")}/api/bars?${barsQuery}`
     : `https://data.alpaca.markets/v2/stocks/bars?${barsQuery}`;
