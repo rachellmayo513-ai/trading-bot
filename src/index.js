@@ -22,6 +22,10 @@ export default {
       targetUrl = "https://data.alpaca.markets/v2/stocks/bars" + url.search;
     } else if (url.pathname === "/api/orders") {
       targetUrl = "https://paper-api.alpaca.markets/v2/orders" + url.search;
+    } else if (url.pathname === "/api/clock") {
+      targetUrl = "https://paper-api.alpaca.markets/v2/clock";
+    } else if (url.pathname === "/api/portfolio-history") {
+      targetUrl = "https://paper-api.alpaca.markets/v2/account/portfolio/history" + url.search;
     } else {
       return json({ error: "Unknown route" }, 404, origin);
     }
