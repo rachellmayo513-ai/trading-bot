@@ -17,11 +17,14 @@
     padding: 24px;
   }
   .wrap { max-width: 780px; margin: 0 auto; }
-  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-  h1 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 600; margin: 0; }
-  .sub { font-size: 13px; color: rgba(30,41,59,0.6); margin-top: 4px; }
-  .clock { font-family: monospace; font-size: 12px; color: rgba(30,41,59,0.45); text-align: right; }
-  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: rgba(30,41,59,0.6); }
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px;
+    background: #7C3AED; border-radius: 12px; padding: 16px 20px;
+  }
+  h1 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 600; margin: 0; color: #fff; }
+  .sub { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 4px; }
+  .clock { font-family: monospace; font-size: 12px; color: rgba(255,255,255,0.7); text-align: right; }
+  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.75); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(30,41,59,0.25); }
   .dot.live { background: #10B981; }
 
@@ -38,10 +41,10 @@
     width: 100%; border: 1px solid rgba(30,41,59,0.15); border-radius: 8px; padding: 10px 12px;
     font-size: 13px; font-family: monospace; outline: none;
   }
-  input:focus { box-shadow: 0 0 0 2px rgba(99,102,241,0.35); border-color: #6366F1; }
+  input:focus { box-shadow: 0 0 0 2px rgba(139,92,246,0.35); border-color: #8B5CF6; }
   .hint { font-size: 12px; color: rgba(30,41,59,0.45); margin-top: 6px; line-height: 1.4; }
   button.primary {
-    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #6366F1;
+    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: #8B5CF6;
     color: #fff; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
   }
   button.primary:disabled { opacity: 0.4; cursor: default; }
@@ -52,8 +55,8 @@
   .error { font-size: 12px; color: #DC2626; margin-top: 12px; line-height: 1.5; }
 
   .demo-banner {
-    margin-bottom: 24px; font-size: 12px; color: rgba(30,41,59,0.6); background: #EEF2FF;
-    border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; padding: 10px 16px;
+    margin-bottom: 24px; font-size: 12px; color: rgba(30,41,59,0.6); background: #F5F3FF;
+    border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 10px 16px;
   }
 
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
@@ -64,9 +67,9 @@
   .stat-value.down { color: #DC2626; }
   .stat-sub { font-size: 14px; font-weight: 400; font-family: 'Manrope', sans-serif; }
 
-  .watchlist-head { padding: 12px 20px; border-bottom: 1px solid rgba(30,41,59,0.08); }
-  .watchlist-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; }
-  .watchlist-sub { font-size: 12px; color: rgba(30,41,59,0.45); }
+  .watchlist-head { padding: 12px 20px; background: #7C3AED; border-radius: 12px 12px 0 0; }
+  .watchlist-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
+  .watchlist-sub { font-size: 12px; color: rgba(255,255,255,0.75); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; font-weight: 400; font-size: 12px; color: rgba(30,41,59,0.45); padding: 8px 20px; border-bottom: 1px solid rgba(30,41,59,0.08); }
   th:last-child { text-align: right; }
@@ -80,6 +83,28 @@
   .badge.Buy { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
   .badge.Sell { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
   .badge.None { background: #F1F5F9; color: rgba(30,41,59,0.5); border-color: rgba(30,41,59,0.1); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .section-head { padding: 12px 20px; background: #7C3AED; border-radius: 12px 12px 0 0; }
+  .section-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
+  .section-sub { font-size: 12px; color: rgba(255,255,255,0.75); }
+  .risk-trailing { color: #7C3AED; font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
+  .risk-kill { color: #B91C1C; font-size: 12px; font-weight: 600; }
+  .risk-none { color: rgba(30,41,59,0.3); }
+  .feed-list { padding: 4px 0; }
+  .feed-empty { padding: 16px 20px; font-size: 13px; color: rgba(30,41,59,0.45); }
+  .feed-item { padding: 10px 20px; border-bottom: 1px solid rgba(30,41,59,0.05); position: relative; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .feed-title.buy { color: #047857; }
+  .feed-title.sell { color: #B91C1C; }
+  .feed-sub { font-size: 12px; color: rgba(30,41,59,0.5); margin-top: 2px; }
+  .feed-amt { position: absolute; top: 10px; right: 20px; font-family: monospace; font-size: 11px; color: rgba(30,41,59,0.4); }
+
+  .rules-card { margin-bottom: 24px; }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; padding: 16px 20px; }
+  .rule-label { font-size: 11px; color: rgba(30,41,59,0.45); margin-bottom: 2px; }
+  .rule-value { font-size: 13px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -127,6 +152,26 @@
     <div class="card stat"><div class="stat-label">Open Positions</div><div class="stat-value" id="positionsVal">3</div></div>
   </div>
 
+  <div class="grid2">
+    <div class="card">
+      <div class="section-head">
+        <div class="section-title">Open Positions</div>
+        <div class="section-sub">Kill switch at -5% &middot; trailing stop active after +1%</div>
+      </div>
+      <table>
+        <thead><tr><th>Ticker</th><th>Qty</th><th>Entry</th><th>Current</th><th>P/L %</th><th>Risk</th></tr></thead>
+        <tbody id="positionsBody"><tr><td colspan="6" class="feed-empty">Connect to see open positions.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-head">
+        <div class="section-title">Signal &amp; Order Feed</div>
+        <div class="section-sub">Most recent bot actions</div>
+      </div>
+      <div class="feed-list" id="feedList"><div class="feed-empty">Connect to see recent orders.</div></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="watchlist-head">
       <div class="watchlist-title">Watchlist</div>
@@ -136,6 +181,25 @@
       <thead><tr><th>Ticker</th><th>Price</th><th>20-bar MA</th><th>Signal</th></tr></thead>
       <tbody id="watchlistBody"></tbody>
     </table>
+  </div>
+
+  <div class="card rules-card" style="margin-top:24px;">
+    <div class="section-head">
+      <div class="section-title">Strategy Rules</div>
+      <div class="section-sub">Configured in GitHub Secrets &mdash; read-only here.</div>
+    </div>
+    <div class="rules-grid">
+      <div><div class="rule-label">Watchlist</div><div class="rule-value">AAPL &middot; MSFT &middot; GOOGL &middot; NVDA &middot; SPY &middot; AMZN</div></div>
+      <div><div class="rule-label">Bar interval</div><div class="rule-value">5-minute candles</div></div>
+      <div><div class="rule-label">Lookback</div><div class="rule-value">30 days</div></div>
+      <div><div class="rule-label">MA window</div><div class="rule-value">20 bars (100-min MA)</div></div>
+      <div><div class="rule-label">Entry rule</div><div class="rule-value">Price crosses above 20-bar MA</div></div>
+      <div><div class="rule-label">Exit rule</div><div class="rule-value">Price crosses below 20-bar MA</div></div>
+      <div><div class="rule-label">Position sizing</div><div class="rule-value">$50 risk per trade</div></div>
+      <div><div class="rule-label">Kill switch</div><div class="rule-value">Force-sell at -5% since entry</div></div>
+      <div><div class="rule-label">Trailing stop</div><div class="rule-value">Activate at +1%, exit on 2% pullback</div></div>
+      <div><div class="rule-label">Notifications</div><div class="rule-value">Discord webhook</div></div>
+    </div>
   </div>
 </div>
 
@@ -191,6 +255,69 @@ function renderStats(equity, cash, dayPL, dayPLPct, positions) {
   const sign = dayPL >= 0 ? "+" : "";
   plEl.className = "stat-value " + (dayPL >= 0 ? "up" : "down");
   plEl.innerHTML = `${sign}${fmtMoney(dayPL)} <span class="stat-sub">${sign}${dayPLPct.toFixed(2)}%</span>`;
+}
+
+function renderPositions(positions) {
+  const body = document.getElementById("positionsBody");
+  if (!positions.length) {
+    body.innerHTML = '<tr><td colspan="6" class="feed-empty">No open positions.</td></tr>';
+    return;
+  }
+  body.innerHTML = "";
+  positions.forEach((p) => {
+    const plPct = parseFloat(p.unrealized_plpc) * 100;
+    let risk = '<span class="risk-none">&mdash;</span>';
+    if (plPct <= -5) risk = '<span class="risk-kill">kill switch</span>';
+    else if (plPct >= 1) risk = '<span class="risk-trailing">&#8853; trailing</span>';
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="ticker">${p.symbol}</td>
+      <td class="mono">${p.qty}</td>
+      <td class="mono">$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
+      <td class="mono">$${parseFloat(p.current_price).toFixed(2)}</td>
+      <td class="mono" style="color:${plPct >= 0 ? '#10B981' : '#DC2626'}">${plPct >= 0 ? "+" : ""}${plPct.toFixed(2)}%</td>
+      <td>${risk}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+async function fetchAndRenderFeed(headers, proxyUrl) {
+  const feedList = document.getElementById("feedList");
+  if (!proxyUrl) {
+    feedList.innerHTML = '<div class="feed-empty">Feed needs the proxy worker (see Proxy URL field).</div>';
+    return;
+  }
+  try {
+    const url = `${proxyUrl.replace(/\/$/, "")}/api/orders?status=closed&limit=8&direction=desc`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Orders request failed (${res.status})`);
+    const orders = await res.json();
+    const filled = orders.filter((o) => o.status === "filled");
+    if (!filled.length) {
+      feedList.innerHTML = '<div class="feed-empty">No filled orders yet.</div>';
+      return;
+    }
+    feedList.innerHTML = "";
+    filled.forEach((o) => {
+      const isBuy = o.side === "buy";
+      const price = o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?";
+      const qty = o.filled_qty || o.qty;
+      const reason = isBuy
+        ? `Price crossed above 20-bar (5m) MA. Sized ${qty} sh @ $${price}.`
+        : `Price crossed below 20-bar (5m) MA.`;
+      const div = document.createElement("div");
+      div.className = "feed-item";
+      div.innerHTML = `
+        <div class="feed-amt">$${price} &times; ${qty}</div>
+        <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${o.symbol}</div>
+        <div class="feed-sub">${reason}</div>
+      `;
+      feedList.appendChild(div);
+    });
+  } catch (e) {
+    feedList.innerHTML = `<div class="feed-empty">Couldn't load order feed: ${e.message}</div>`;
+  }
 }
 
 function showDemo() {
@@ -276,6 +403,8 @@ document.getElementById("connectBtn").addEventListener("click", async () => {
 
     renderStats(equity, parseFloat(acct.cash), dayPL, dayPLPct, positions.length);
     renderWatchlist(signals);
+    renderPositions(positions);
+    fetchAndRenderFeed(headers, proxyUrl);
 
     connected = true;
     document.getElementById("statusDot").classList.add("live");
@@ -309,6 +438,8 @@ document.getElementById("disconnectBtn").addEventListener("click", () => {
   document.getElementById("formFields").style.display = "block";
   document.getElementById("disconnectBtn").style.display = "none";
   document.getElementById("errorMsg").style.display = "none";
+  document.getElementById("positionsBody").innerHTML = '<tr><td colspan="6" class="feed-empty">Connect to see open positions.</td></tr>';
+  document.getElementById("feedList").innerHTML = '<div class="feed-empty">Connect to see recent orders.</div>';
   showDemo();
 });
 </script>
