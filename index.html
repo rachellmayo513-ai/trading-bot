@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -318,7 +317,7 @@
       <div class="section-sub">Configured in GitHub Secrets &mdash; read-only here.</div>
     </div>
     <div class="rules-grid">
-      <div><div class="rule-label">Watchlist</div><div class="rule-value">AAPL &middot; MSFT &middot; GOOGL &middot; NVDA &middot; SPY &middot; AMZN</div></div>
+      <div><div class="rule-label">Watchlist</div><div class="rule-value">AAPL &middot; MSFT &middot; GOOGL &middot; NVDA &middot; SPY &middot; AMZN &middot; JNJ &middot; UNH &middot; JPM &middot; BAC &middot; XOM &middot; CVX &middot; WMT &middot; COST &middot; QQQ &middot; IWM</div></div>
       <div><div class="rule-label">Bar interval</div><div class="rule-value">5-minute candles</div></div>
       <div><div class="rule-label">Lookback</div><div class="rule-value">30 days</div></div>
       <div><div class="rule-label">MA window</div><div class="rule-value">20 bars (100-min MA)</div></div>
@@ -391,9 +390,23 @@
 </div>
 
 <script>
-const WATCHLIST = ["AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN"];
-const SECTOR_MAP = { AAPL: "Tech", MSFT: "Tech", GOOGL: "Tech", NVDA: "Tech", AMZN: "Consumer", SPY: "Broad market" };
-const SECTOR_COLORS = { "Tech": "#7C3AED", "Consumer": "#F59E0B", "Broad market": "#10B981", "Other": "#64748B" };
+const WATCHLIST = [
+  "AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN",
+  "JNJ", "UNH", "JPM", "BAC", "XOM", "CVX", "WMT", "COST", "QQQ", "IWM",
+];
+const SECTOR_MAP = {
+  AAPL: "Tech", MSFT: "Tech", GOOGL: "Tech", NVDA: "Tech", AMZN: "Consumer",
+  SPY: "Broad market", QQQ: "Broad market", IWM: "Broad market",
+  JNJ: "Healthcare", UNH: "Healthcare",
+  JPM: "Financials", BAC: "Financials",
+  XOM: "Energy", CVX: "Energy",
+  WMT: "Consumer", COST: "Consumer",
+};
+const SECTOR_COLORS = {
+  "Tech": "#7C3AED", "Consumer": "#F59E0B", "Broad market": "#10B981",
+  "Healthcare": "#EC4899", "Financials": "#0EA5E9", "Energy": "#F97316",
+  "Other": "#64748B",
+};
 const MA_WINDOW = 20;
 const TIMEFRAME = "5Min";
 const REFRESH_SECONDS = 30;
@@ -408,6 +421,16 @@ const DEMO = {
     { ticker: "NVDA", price: 128.6, ma: 127.4, signal: "Buy" },
     { ticker: "SPY", price: 562.3, ma: 562.1, signal: "None" },
     { ticker: "AMZN", price: 221.7, ma: 223.0, signal: "None" },
+    { ticker: "JNJ", price: 158.4, ma: 158.9, signal: "None" },
+    { ticker: "UNH", price: 512.3, ma: 508.7, signal: "Buy" },
+    { ticker: "JPM", price: 224.6, ma: 225.1, signal: "None" },
+    { ticker: "BAC", price: 44.8, ma: 44.5, signal: "Buy" },
+    { ticker: "XOM", price: 118.2, ma: 119.0, signal: "Sell" },
+    { ticker: "CVX", price: 162.7, ma: 162.3, signal: "None" },
+    { ticker: "WMT", price: 96.4, ma: 96.1, signal: "None" },
+    { ticker: "COST", price: 972.5, ma: 968.2, signal: "Buy" },
+    { ticker: "QQQ", price: 498.1, ma: 497.6, signal: "None" },
+    { ticker: "IWM", price: 221.9, ma: 223.4, signal: "Sell" },
   ],
 };
 
