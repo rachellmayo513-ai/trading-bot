@@ -194,6 +194,14 @@
   .alert-entry.trade { color: var(--text); }
   .exposure-bar { display: flex; height: 20px; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
   .exposure-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--text-secondary); }
+  .trade-row { padding: 8px 0; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
+  .trade-row:last-child { border-bottom: none; }
+  .trade-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .trade-side { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 8px; border-radius: 999px; font-size: 10px; }
+  .trade-side.buy { background: rgba(16,185,129,0.15); color: #10B981; }
+  .trade-side.sell { background: rgba(220,38,38,0.15); color: #EF4444; }
+  .trade-meta { color: var(--text-muted); font-size: 10px; margin-top: 3px; }
+  .trade-pl { font-family: monospace; font-weight: 600; }
   .settings-btn {
     padding: 8px 14px; border-radius: 8px; background: var(--accent); color: #fff; border: none;
     font-size: 12px; cursor: pointer; font-family: 'Outfit', sans-serif;
@@ -341,6 +349,7 @@
       <div class="settings-nav">
         <button class="settings-tab active" data-tab="alerts">Alert history</button>
         <button class="settings-tab" data-tab="exposure">Exposure</button>
+        <button class="settings-tab" data-tab="trades">Trade history</button>
         <button class="settings-tab" data-tab="notifications">Notifications</button>
         <button class="settings-tab" data-tab="export">Export</button>
         <button class="settings-tab" data-tab="appearance">Appearance</button>
@@ -354,6 +363,10 @@
         <div class="settings-pane" id="pane-exposure" style="display:none;">
           <h3>Sector exposure</h3>
           <div id="exposureBody"><div class="feed-empty">Connect and hold a position to see exposure.</div></div>
+        </div>
+        <div class="settings-pane" id="pane-trades" style="display:none;">
+          <h3>Trade history</h3>
+          <div id="tradeHistoryList"><div class="feed-empty">Connect to see individual trades.</div></div>
         </div>
         <div class="settings-pane" id="pane-notifications" style="display:none;">
           <h3>Notifications</h3>
@@ -478,6 +491,7 @@ document.querySelectorAll(".settings-tab").forEach((tab) => {
     tab.classList.add("active");
     document.getElementById("pane-" + tab.dataset.tab).style.display = "block";
     if (tab.dataset.tab === "exposure") renderExposure();
+    if (tab.dataset.tab === "trades") renderTradeHistory(lastFilledOrders);
   });
 });
 
@@ -765,6 +779,71 @@ async function fetchAndRenderFeed(headers, proxyUrl) {
   }
 }
 
+function renderTradeHistory(filledDesc) {
+  const el = document.getElementById("tradeHistoryList");
+  if (!el) return;
+  if (!filledDesc.length) {
+    el.innerHTML = '<div class="feed-empty">Connect to see individual trades.</div>';
+    return;
+  }
+
+  // Walk chronologically to match sells against FIFO buy lots, same rule as computeTradeStats,
+  // but keep every individual leg (buys included) for display, tagged with its side.
+  const chronological = filledDesc.slice().reverse();
+  const openBuys = {};
+  const rows = [];
+
+  chronological.forEach((o) => {
+    const sym = o.symbol;
+    const qty = parseFloat(o.filled_qty || o.qty);
+    const price = parseFloat(o.filled_avg_price);
+    const when = o.filled_at ? new Date(o.filled_at) : null;
+    if (!qty || !price) return;
+
+    if (o.side === "buy") {
+      if (!openBuys[sym]) openBuys[sym] = [];
+      openBuys[sym].push({ qty, price });
+      rows.push({ symbol: sym, side: "buy", qty, price, when, plPct: null });
+    } else if (o.side === "sell") {
+      let remaining = qty;
+      let weightedPl = 0;
+      let matched = 0;
+      while (remaining > 0 && openBuys[sym] && openBuys[sym].length) {
+        const lot = openBuys[sym][0];
+        const matchQty = Math.min(remaining, lot.qty);
+        const pl = ((price - lot.price) / lot.price) * 100;
+        weightedPl += pl * matchQty;
+        matched += matchQty;
+        lot.qty -= matchQty;
+        remaining -= matchQty;
+        if (lot.qty <= 0) openBuys[sym].shift();
+      }
+      const plPct = matched ? weightedPl / matched : null;
+      rows.push({ symbol: sym, side: "sell", qty, price, when, plPct });
+    }
+  });
+
+  rows.reverse(); // newest first for display
+
+  el.innerHTML = rows.map((r) => {
+    const dateStr = r.when
+      ? r.when.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+      : "";
+    const plHtml = r.plPct != null
+      ? `<span class="trade-pl" style="color:${r.plPct >= 0 ? '#10B981' : '#EF4444'}">${r.plPct >= 0 ? "+" : ""}${r.plPct.toFixed(2)}%</span>`
+      : `<span class="trade-pl" style="color:var(--text-muted)">open</span>`;
+    return `
+      <div class="trade-row">
+        <div class="trade-top">
+          <span><span class="trade-side ${r.side}">${r.side === "buy" ? "&#8599; Buy" : "&#8600; Sell"}</span> ${r.symbol}</span>
+          ${plHtml}
+        </div>
+        <div class="trade-meta">${r.qty} sh @ $${r.price.toFixed(2)} &middot; ${dateStr}</div>
+      </div>
+    `;
+  }).join("");
+}
+
 function computeTradeStats(filledDesc) {
   const filled = filledDesc.slice().reverse();
   const openBuys = {};
@@ -856,7 +935,7 @@ function fmtChartDate(ts) {
   return ts ? new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 }
 
-function renderEquityChart(equity, timestamps, wrap) {
+Function renderEquityChart(equity, timestamps, wrap) {
   if (equity.length < 2) {
     wrap.innerHTML = '<div class="feed-empty">Not enough history yet.</div>';
     return;
@@ -929,7 +1008,7 @@ showDemo();
 async function computeSignals(headers, proxyUrl) {
   const symbols = WATCHLIST.join(",");
   const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&start=${start}&limit=1000&feed=iex`;
+  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&start=${start}&limit=10000&feed=iex`;
   const barsUrl = proxyUrl
     ? `${proxyUrl.replace(/\/$/, "")}/api/bars?${barsQuery}`
     : `https://data.alpaca.markets/v2/stocks/bars?${barsQuery}`;
@@ -990,6 +1069,7 @@ async function loadAllData(isBackgroundRefresh) {
     fetchMarketStatus(headers, baseUrl, proxyUrl);
     fetchEquityHistory(headers, baseUrl, proxyUrl);
     if (document.getElementById("pane-exposure").style.display !== "none") renderExposure();
+    if (document.getElementById("pane-trades").style.display !== "none") renderTradeHistory(lastFilledOrders);
 
     if (!isBackgroundRefresh) {
       connected = true;
@@ -1063,6 +1143,7 @@ document.getElementById("disconnectBtn").addEventListener("click", () => {
   document.getElementById("feedList").innerHTML = '<div class="feed-empty">Connect to see recent orders.</div>';
   document.getElementById("equityChartWrap").innerHTML = '<div class="feed-empty">Connect to see equity history.</div>';
   document.getElementById("dailyBarsWrap").innerHTML = "";
+  document.getElementById("tradeHistoryList").innerHTML = '<div class="feed-empty">Connect to see individual trades.</div>';
   lastPositions = [];
   lastFilledOrders = [];
   resetTradeStats();
