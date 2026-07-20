@@ -935,7 +935,7 @@ function fmtChartDate(ts) {
   return ts ? new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 }
 
-Function renderEquityChart(equity, timestamps, wrap) {
+function renderEquityChart(equity, timestamps, wrap) {
   if (equity.length < 2) {
     wrap.innerHTML = '<div class="feed-empty">Not enough history yet.</div>';
     return;
