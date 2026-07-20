@@ -227,7 +227,7 @@
     <button class="settings-gear" id="settingsBtn" aria-label="Settings">&#9881;</button>
     <div>
       <h1>Trading Bot Dashboard</h1>
-      <div class="sub">Alpaca &middot; 20-bar MA crossover &middot; trailing-stop risk engine</div>
+      <div class="sub">Alpaca &middot; Day-trading options bot &middot; 5-10 day ATM calls/puts</div>
     </div>
     <div>
       <div class="clock" id="clock"></div>
@@ -292,7 +292,7 @@
     <div class="card">
       <div class="section-head">
         <div class="section-title">Open Positions</div>
-        <div class="section-sub">Kill switch at -5% &middot; trailing stop active after +1%</div>
+        <div class="section-sub">Stop-loss at -30% &middot; take-profit at +50% &middot; closed by 3:45pm ET</div>
       </div>
       <table>
         <thead><tr><th>Ticker</th><th>Qty</th><th>Entry</th><th>Current</th><th>P/L %</th><th>Risk</th></tr></thead>
@@ -311,7 +311,7 @@
   <div class="card">
     <div class="watchlist-head">
       <div class="watchlist-title">Watchlist</div>
-      <div class="watchlist-sub">MA crossover scanner &middot; 5min bars</div>
+      <div class="watchlist-sub">Buy = call signal, Sell = put signal &middot; 200 EMA trend + volume confirmed</div>
     </div>
     <table>
       <thead><tr><th>Ticker</th><th>Price</th><th>20-bar MA</th><th>Signal</th></tr></thead>
@@ -326,14 +326,15 @@
     </div>
     <div class="rules-grid">
       <div><div class="rule-label">Watchlist</div><div class="rule-value">AAPL &middot; MSFT &middot; GOOGL &middot; NVDA &middot; SPY &middot; AMZN &middot; JNJ &middot; UNH &middot; JPM &middot; BAC &middot; XOM &middot; CVX &middot; WMT &middot; COST &middot; QQQ &middot; IWM</div></div>
+      <div><div class="rule-label">Instrument</div><div class="rule-value">Long calls &amp; puts (ATM strike)</div></div>
       <div><div class="rule-label">Bar interval</div><div class="rule-value">5-minute candles</div></div>
-      <div><div class="rule-label">Lookback</div><div class="rule-value">30 days</div></div>
-      <div><div class="rule-label">MA window</div><div class="rule-value">20 bars (100-min MA)</div></div>
-      <div><div class="rule-label">Entry rule</div><div class="rule-value">Price crosses above 20-bar MA</div></div>
-      <div><div class="rule-label">Exit rule</div><div class="rule-value">Price crosses below 20-bar MA</div></div>
-      <div><div class="rule-label">Position sizing</div><div class="rule-value">$50 risk per trade</div></div>
-      <div><div class="rule-label">Kill switch</div><div class="rule-value">Force-sell at -5% since entry</div></div>
-      <div><div class="rule-label">Trailing stop</div><div class="rule-value">Activate at +1%, exit on 2% pullback</div></div>
+      <div><div class="rule-label">Expiration window</div><div class="rule-value">5&ndash;10 days out</div></div>
+      <div><div class="rule-label">Entry rule</div><div class="rule-value">20-bar MA crossover + 200-bar EMA trend + 1.5x volume surge</div></div>
+      <div><div class="rule-label">Exit rule</div><div class="rule-value">Stop-loss / take-profit / end-of-day flatten</div></div>
+      <div><div class="rule-label">Position sizing</div><div class="rule-value">~$100 premium budget/trade (min 1 contract)</div></div>
+      <div><div class="rule-label">Stop-loss</div><div class="rule-value">-30% of premium paid</div></div>
+      <div><div class="rule-label">Take-profit</div><div class="rule-value">+50% of premium paid</div></div>
+      <div><div class="rule-label">Day-trading rule</div><div class="rule-value">All positions closed by 3:45pm ET &mdash; never held overnight</div></div>
       <div><div class="rule-label">Notifications</div><div class="rule-value">Discord webhook</div></div>
     </div>
   </div>
@@ -420,6 +421,30 @@ const SECTOR_COLORS = {
   "Healthcare": "#EC4899", "Financials": "#0EA5E9", "Energy": "#F97316",
   "Other": "#64748B",
 };
+
+// --- Options bot parameters (matches options_bot.py) ---
+const EMA_TREND_WINDOW = 200;
+const VOLUME_AVG_WINDOW = 20;
+const VOLUME_SURGE_MULTIPLIER = 1.5;
+const OPTION_STOP_LOSS_PCT = -30;
+const OPTION_TAKE_PROFIT_PCT = 50;
+
+// Parses an OCC-format option symbol like "AAPL260130C00235000" into its parts.
+function parseOptionSymbol(symbol) {
+  const m = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/);
+  if (!m) return null;
+  const [, underlying, yy, mm, dd, cp, strikeRaw] = m;
+  const strike = parseInt(strikeRaw, 10) / 1000;
+  const expiration = `20${yy}-${mm}-${dd}`;
+  return { underlying, type: cp === "C" ? "Call" : "Put", strike, expiration };
+}
+
+function formatOptionLabel(symbol) {
+  const parsed = parseOptionSymbol(symbol);
+  if (!parsed) return symbol;
+  const expShort = new Date(parsed.expiration + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${parsed.underlying} $${parsed.strike.toFixed(0)} ${parsed.type} ${expShort}`;
+}
 const MA_WINDOW = 20;
 const TIMEFRAME = "5Min";
 const REFRESH_SECONDS = 30;
@@ -575,8 +600,12 @@ function renderExposure() {
   const totals = {};
   let grandTotal = 0;
   lastPositions.forEach((p) => {
-    const sector = SECTOR_MAP[p.symbol] || "Other";
-    const value = parseFloat(p.qty) * parseFloat(p.current_price);
+    const parsed = parseOptionSymbol(p.symbol);
+    const underlying = parsed ? parsed.underlying : p.symbol;
+    const sector = SECTOR_MAP[underlying] || "Other";
+    // Option contracts control 100 shares of exposure each; premium is quoted per-share.
+    const multiplier = parsed ? 100 : 1;
+    const value = parseFloat(p.qty) * parseFloat(p.current_price) * multiplier;
     totals[sector] = (totals[sector] || 0) + value;
     grandTotal += value;
   });
@@ -649,11 +678,12 @@ function renderPositions(positions) {
     positions.forEach((p) => {
       const plPct = parseFloat(p.unrealized_plpc) * 100;
       let risk = '<span class="risk-none">&mdash;</span>';
-      if (plPct <= -5) risk = '<span class="risk-kill">kill switch</span>';
-      else if (plPct >= 1) risk = '<span class="risk-trailing">&#8853; trailing</span>';
+      if (plPct <= OPTION_STOP_LOSS_PCT) risk = '<span class="risk-kill">stop-loss</span>';
+      else if (plPct >= OPTION_TAKE_PROFIT_PCT) risk = '<span class="risk-trailing">&#127919; take-profit</span>';
+      const label = formatOptionLabel(p.symbol);
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="ticker">${p.symbol}</td>
+        <td class="ticker">${label}</td>
         <td class="mono">${p.qty}</td>
         <td class="mono">$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
         <td class="mono">$${parseFloat(p.current_price).toFixed(2)}</td>
@@ -669,11 +699,12 @@ function renderPositions(positions) {
 
 function checkKillSwitchWarning(positions) {
   const banner = document.getElementById("killWarnBanner");
-  const warn = positions.filter((p) => parseFloat(p.unrealized_plpc) * 100 <= -3);
+  const warnThreshold = OPTION_STOP_LOSS_PCT + 10; // give a heads-up 10 points before the stop-loss fires
+  const warn = positions.filter((p) => parseFloat(p.unrealized_plpc) * 100 <= warnThreshold);
   if (warn.length) {
     banner.style.display = "block";
-    banner.textContent = "Approaching kill switch (-5%): " + warn
-      .map((p) => `${p.symbol} ${(parseFloat(p.unrealized_plpc) * 100).toFixed(2)}%`)
+    banner.textContent = `Approaching stop-loss (${OPTION_STOP_LOSS_PCT}%): ` + warn
+      .map((p) => `${formatOptionLabel(p.symbol)} ${(parseFloat(p.unrealized_plpc) * 100).toFixed(2)}%`)
       .join(", ");
   } else {
     banner.style.display = "none";
@@ -682,21 +713,23 @@ function checkKillSwitchWarning(positions) {
 
 function trackRiskAlerts(positions) {
   const seen = new Set();
+  const warnThreshold = OPTION_STOP_LOSS_PCT + 10;
   positions.forEach((p) => {
     const sym = p.symbol;
     seen.add(sym);
     const plPct = parseFloat(p.unrealized_plpc) * 100;
     const prev = riskState[sym];
-    if (plPct <= -5 && prev !== "kill") {
-      logAlert("danger", `Kill switch triggered: ${sym} at ${plPct.toFixed(2)}%`);
-      riskState[sym] = "kill";
-    } else if (plPct <= -3 && prev !== "kill" && prev !== "warn") {
-      logAlert("warn", `Approaching kill switch: ${sym} at ${plPct.toFixed(2)}%`);
+    const label = formatOptionLabel(sym);
+    if (plPct <= OPTION_STOP_LOSS_PCT && prev !== "stop") {
+      logAlert("danger", `Stop-loss triggered: ${label} at ${plPct.toFixed(2)}%`);
+      riskState[sym] = "stop";
+    } else if (plPct <= warnThreshold && prev !== "stop" && prev !== "warn") {
+      logAlert("warn", `Approaching stop-loss: ${label} at ${plPct.toFixed(2)}%`);
       riskState[sym] = "warn";
-    } else if (plPct >= 1 && !prev) {
-      logAlert("info", `Trailing stop armed: ${sym} at +${plPct.toFixed(2)}%`);
-      riskState[sym] = "trailing";
-    } else if (plPct > -3 && plPct < 1) {
+    } else if (plPct >= OPTION_TAKE_PROFIT_PCT && prev !== "profit") {
+      logAlert("info", `Take-profit reached: ${label} at +${plPct.toFixed(2)}%`);
+      riskState[sym] = "profit";
+    } else if (plPct > warnThreshold && plPct < OPTION_TAKE_PROFIT_PCT) {
       riskState[sym] = null;
     }
   });
@@ -743,7 +776,7 @@ async function fetchAndRenderFeed(headers, proxyUrl) {
     filled.forEach((o) => {
       if (!knownOrderIds.has(o.id)) {
         knownOrderIds.add(o.id);
-        logAlert("trade", `${o.side === "buy" ? "Buy" : "Sell"} filled: ${o.symbol} ${o.filled_qty || o.qty} @ $${o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?"}`);
+        logAlert("trade", `${o.side === "buy" ? "Buy" : "Sell"} filled: ${formatOptionLabel(o.symbol)} ${o.filled_qty || o.qty}x @ $${o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?"}`);
       }
     });
 
@@ -759,14 +792,15 @@ async function fetchAndRenderFeed(headers, proxyUrl) {
       const isBuy = o.side === "buy";
       const price = o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?";
       const qty = o.filled_qty || o.qty;
+      const label = formatOptionLabel(o.symbol);
       const reason = isBuy
-        ? `Price crossed above 20-bar (5m) MA. Sized ${qty} sh @ $${price}.`
-        : `Price crossed below 20-bar (5m) MA.`;
+        ? `20-bar MA crossover, confirmed by 200-bar EMA trend + 1.5x volume surge.`
+        : `Position closed &mdash; stop-loss, take-profit, or end-of-day flatten.`;
       const div = document.createElement("div");
       div.className = "feed-item";
       div.innerHTML = `
         <div class="feed-row">
-          <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${o.symbol}</div>
+          <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${label}</div>
           <div class="feed-amt">$${price} &times; ${qty}</div>
         </div>
         <div class="feed-sub">${reason}</div>
@@ -835,10 +869,10 @@ function renderTradeHistory(filledDesc) {
     return `
       <div class="trade-row">
         <div class="trade-top">
-          <span><span class="trade-side ${r.side}">${r.side === "buy" ? "&#8599; Buy" : "&#8600; Sell"}</span> ${r.symbol}</span>
+          <span><span class="trade-side ${r.side}">${r.side === "buy" ? "&#8599; Buy" : "&#8600; Sell"}</span> ${formatOptionLabel(r.symbol)}</span>
           ${plHtml}
         </div>
-        <div class="trade-meta">${r.qty} sh @ $${r.price.toFixed(2)} &middot; ${dateStr}</div>
+        <div class="trade-meta">${r.qty}x @ $${r.price.toFixed(2)}/contract &middot; ${dateStr}</div>
       </div>
     `;
   }).join("");
@@ -1019,20 +1053,45 @@ async function computeSignals(headers, proxyUrl) {
 
   return WATCHLIST.map((ticker) => {
     const series = bars[ticker] || [];
-    if (series.length < MA_WINDOW + 1) return { ticker, price: null, ma: null, signal: "None" };
+    const minBarsNeeded = Math.max(MA_WINDOW, EMA_TREND_WINDOW, VOLUME_AVG_WINDOW) + 1;
+    if (series.length < minBarsNeeded) return { ticker, price: null, ma: null, signal: "None" };
+
     const closes = series.map((b) => b.c);
+    const volumes = series.map((b) => b.v || 0);
+
     const maAt = (endIdxExclusive) => {
       const window = closes.slice(endIdxExclusive - MA_WINDOW, endIdxExclusive);
       return window.reduce((a, b) => a + b, 0) / window.length;
     };
+    const volAvgAt = (endIdxExclusive) => {
+      const window = volumes.slice(endIdxExclusive - VOLUME_AVG_WINDOW, endIdxExclusive);
+      return window.reduce((a, b) => a + b, 0) / window.length;
+    };
+    // EMA over the whole available series (matches pandas .ewm(span=N, adjust=False))
+    const emaSeries = (() => {
+      const k = 2 / (EMA_TREND_WINDOW + 1);
+      const out = [closes[0]];
+      for (let i = 1; i < closes.length; i++) out.push(closes[i] * k + out[i - 1] * (1 - k));
+      return out;
+    })();
+
     const n = closes.length;
     const currentClose = closes[n - 1];
     const previousClose = closes[n - 2];
     const currentMA = maAt(n);
     const previousMA = maAt(n - 1);
+    const currentEMA200 = emaSeries[n - 1];
+    const currentVolume = volumes[n - 1];
+    const currentVolAvg = volAvgAt(n);
+
+    const volumeOk = currentVolAvg > 0 && currentVolume >= currentVolAvg * VOLUME_SURGE_MULTIPLIER;
+
     let signal = "None";
-    if (previousClose < previousMA && currentClose > currentMA) signal = "Buy";
-    else if (previousClose > previousMA && currentClose < currentMA) signal = "Sell";
+    if (previousClose < previousMA && currentClose > currentMA && currentClose > currentEMA200 && volumeOk) {
+      signal = "Buy";
+    } else if (previousClose > previousMA && currentClose < currentMA && currentClose < currentEMA200 && volumeOk) {
+      signal = "Sell";
+    }
     return { ticker, price: currentClose, ma: currentMA, signal };
   });
 }
