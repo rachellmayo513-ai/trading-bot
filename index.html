@@ -1,1219 +1,413 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Trading Bot Dashboard</title>
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#7C3AED" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="TradeBot" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --accent: #7C3AED;
-    --bg: #F8FAFC;
-    --surface: #FFFFFF;
-    --text: #1E293B;
-    --text-secondary: rgba(30,41,59,0.6);
-    --text-muted: rgba(30,41,59,0.45);
-    --border: rgba(30,41,59,0.1);
-    --border-soft: rgba(30,41,59,0.08);
-  }
-  [data-theme="dark"] {
-    --bg: #0F172A;
-    --surface: #1E293B;
-    --text: #F1F5F9;
-    --text-secondary: rgba(241,245,249,0.65);
-    --text-muted: rgba(241,245,249,0.45);
-    --border: rgba(241,245,249,0.14);
-    --border-soft: rgba(241,245,249,0.09);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: 24px;
-    transition: background .15s, color .15s;
-  }
-  .wrap { max-width: 780px; margin: 0 auto; }
-  .header {
-    display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px;
-    background: var(--accent); border-radius: 12px; padding: 16px 20px; position: relative;
-  }
-  h1 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 600; margin: 0; color: #fff; }
-  .sub { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 4px; }
-  .clock { font-family: monospace; font-size: 12px; color: rgba(255,255,255,0.7); text-align: right; }
-  .status { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.75); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); }
-  .dot.live { background: #34D399; }
-  .refresh-line { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 4px; text-align: right; }
-  .market-badge {
-    display: none; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 3px 8px;
-    border-radius: 999px; text-align: center;
-  }
-  .market-badge.open { background: rgba(52,211,153,0.2); color: #A7F3D0; }
-  .market-badge.closed { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
-  .settings-gear {
-    position: absolute; top: 14px; right: 16px; background: none; border: none;
-    color: #fff; font-size: 17px; cursor: pointer; padding: 2px 4px; line-height: 1;
-    opacity: 0.85;
-  }
-  .settings-gear:hover { opacity: 1; }
-
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
-  .connect-panel { margin-bottom: 24px; overflow: hidden; }
-  .connect-toggle {
-    width: 100%; display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 20px; background: none; border: none; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
-    color: var(--text); cursor: pointer;
-  }
-  .connect-body { padding: 0 20px 20px; border-top: 1px solid var(--border-soft); }
-  label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; margin-top: 12px; }
-  input[type=text], input[type=password] {
-    width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
-    font-size: 13px; font-family: monospace; outline: none; background: var(--surface); color: var(--text);
-  }
-  input:focus { box-shadow: 0 0 0 2px rgba(139,92,246,0.35); border-color: var(--accent); }
-  .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
-  button.primary {
-    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: var(--accent);
-    color: #fff; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
-  }
-  button.primary:disabled { opacity: 0.4; cursor: default; }
-  button.secondary {
-    margin-top: 16px; padding: 10px 18px; border-radius: 8px; background: var(--surface);
-    color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; border: 1px solid var(--border); cursor: pointer;
-  }
-  .error { font-size: 12px; color: #DC2626; margin-top: 12px; line-height: 1.5; }
-
-  .demo-banner {
-    margin-bottom: 24px; font-size: 12px; color: var(--text-secondary); background: var(--surface);
-    border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px;
-  }
-  .warn-banner {
-    display: none; margin-bottom: 24px; font-size: 12px; color: #7C2D12; background: #FFF7ED;
-    border: 1px solid #FDBA74; border-radius: 8px; padding: 10px 16px; font-weight: 600;
-  }
-
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .stat { padding: 16px; }
-  .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
-  .stat-value { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 600; }
-  .stat-value.up { color: #10B981; }
-  .stat-value.down { color: #DC2626; }
-  .stat-sub { font-size: 14px; font-weight: 400; font-family: 'Manrope', sans-serif; }
-
-  .stats3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-  .stat3 { padding: 14px; }
-  .stat3 .stat-label { font-size: 11px; }
-  .stat3 .stat-value { font-size: 18px; }
-
-  .chart-card { margin-bottom: 24px; }
-  .chart-body { padding: 16px 20px; }
-  .daybar-row { display: flex; gap: 6px; margin-top: 12px; height: 56px; }
-
-  .watchlist-head { padding: 12px 20px; background: var(--accent); border-radius: 12px 12px 0 0; }
-  .watchlist-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
-  .watchlist-sub { font-size: 12px; color: rgba(255,255,255,0.75); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; font-weight: 400; font-size: 12px; color: var(--text-muted); padding: 8px 20px; border-bottom: 1px solid var(--border-soft); }
-  th:last-child { text-align: right; }
-  td { padding: 12px 20px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
-  tr:last-child td { border-bottom: none; }
-  td.ticker { font-weight: 600; }
-  td.mono { font-family: monospace; }
-  td.ma { font-family: monospace; color: var(--text-secondary); }
-  td.signal { text-align: right; }
-  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid; }
-  .badge.Buy { background: rgba(16,185,129,0.15); color: #10B981; border-color: rgba(16,185,129,0.35); }
-  .badge.Sell { background: rgba(220,38,38,0.15); color: #EF4444; border-color: rgba(220,38,38,0.35); }
-  .badge.None { background: rgba(148,163,184,0.15); color: var(--text-muted); border-color: var(--border); }
-
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .section-head { padding: 12px 20px; background: var(--accent); border-radius: 12px 12px 0 0; }
-  .section-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
-  .section-sub { font-size: 12px; color: rgba(255,255,255,0.75); }
-  .risk-trailing { color: var(--accent); font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
-  .risk-kill { color: #EF4444; font-size: 12px; font-weight: 600; }
-  .risk-none { color: var(--text-muted); }
-  .feed-list { padding: 4px 0; }
-  .feed-empty { padding: 16px 20px; font-size: 13px; color: var(--text-muted); }
-  .feed-item { padding: 10px 20px; border-bottom: 1px solid var(--border-soft); }
-  .feed-item:last-child { border-bottom: none; }
-  .feed-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .feed-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; min-width: 0; }
-  .feed-title.buy { color: #10B981; }
-  .feed-title.sell { color: #EF4444; }
-  .feed-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-  .feed-amt { font-family: monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
-
-  @media (max-width: 640px) {
-    .grid2 { grid-template-columns: 1fr; }
-    .stats3 { grid-template-columns: 1fr 1fr; }
-    .rules-grid { grid-template-columns: 1fr; }
-  }
-
-  .rules-card { margin-bottom: 24px; }
-  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; padding: 16px 20px; }
-  .rule-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
-  .rule-value { font-size: 13px; font-weight: 600; }
-
-  .settings-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; }
-  .settings-drawer {
-    position: absolute; top: 0; left: 0; height: 100%; width: 320px; max-width: 88vw;
-    background: var(--surface); box-shadow: 2px 0 20px rgba(0,0,0,0.25);
-    display: flex; flex-direction: column; transform: translateX(0);
-  }
-  .settings-header {
-    display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
-    border-bottom: 1px solid var(--border); font-family: 'Outfit', sans-serif; font-weight: 600; color: var(--text);
-  }
-  .settings-header button { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); line-height: 1; }
-  .settings-body { display: flex; flex: 1; overflow: hidden; }
-  .settings-nav { width: 128px; border-right: 1px solid var(--border); padding: 8px; overflow-y: auto; flex-shrink: 0; }
-  .settings-tab {
-    display: block; width: 100%; text-align: left; padding: 9px 10px; border: none; background: none;
-    font-size: 12px; color: var(--text-secondary); border-radius: 6px; cursor: pointer; margin-bottom: 2px;
-    font-family: 'Manrope', sans-serif;
-  }
-  .settings-tab.active { background: var(--accent); color: #fff; }
-  .settings-content { flex: 1; padding: 16px; overflow-y: auto; font-size: 13px; color: var(--text); }
-  .settings-pane h3 { font-family: 'Outfit', sans-serif; font-size: 14px; margin: 0 0 10px; }
-  .alert-entry { padding: 8px 0; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
-  .alert-entry .t { color: var(--text-muted); font-size: 10px; margin-bottom: 2px; }
-  .alert-entry.danger { color: #EF4444; }
-  .alert-entry.warn { color: #F59E0B; }
-  .alert-entry.info { color: var(--accent); }
-  .alert-entry.trade { color: var(--text); }
-  .exposure-bar { display: flex; height: 20px; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
-  .exposure-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--text-secondary); }
-  .trade-row { padding: 8px 0; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
-  .trade-row:last-child { border-bottom: none; }
-  .trade-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .trade-side { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 8px; border-radius: 999px; font-size: 10px; }
-  .trade-side.buy { background: rgba(16,185,129,0.15); color: #10B981; }
-  .trade-side.sell { background: rgba(220,38,38,0.15); color: #EF4444; }
-  .trade-meta { color: var(--text-muted); font-size: 10px; margin-top: 3px; }
-  .trade-pl { font-family: monospace; font-weight: 600; }
-  .settings-btn {
-    padding: 8px 14px; border-radius: 8px; background: var(--accent); color: #fff; border: none;
-    font-size: 12px; cursor: pointer; font-family: 'Outfit', sans-serif;
-  }
-  .settings-btn.ghost { background: none; color: var(--text-secondary); border: 1px solid var(--border); }
-  .color-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-  .color-row input[type=color] { width: 40px; height: 28px; border: none; border-radius: 6px; padding: 0; cursor: pointer; background: none; }
-  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
-  .switch { position: relative; display: inline-block; width: 38px; height: 21px; flex-shrink: 0; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .switch .track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: background .15s; cursor: pointer; }
-  .switch .track:before {
-    content: ""; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px;
-    background: #fff; border-radius: 50%; transition: transform .15s;
-  }
-  .switch input:checked + .track { background: var(--accent); }
-  .switch input:checked + .track:before { transform: translateX(17px); }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="header">
-    <button class="settings-gear" id="settingsBtn" aria-label="Settings">&#9881;</button>
-    <div>
-      <h1>Trading Bot Dashboard</h1>
-      <div class="sub">Alpaca &middot; Day-trading options bot &middot; 5-10 day ATM calls/puts</div>
-    </div>
-    <div>
-      <div class="clock" id="clock"></div>
-      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Demo data</span></div>
-      <div class="refresh-line" id="refreshLine"></div>
-      <div class="market-badge" id="marketBadge"></div>
-    </div>
-  </div>
-
-  <div class="card connect-panel">
-    <button class="connect-toggle" id="connectToggle">
-      <span id="connectToggleLabel">Connect your Alpaca account</span>
-      <span id="connectToggleIcon">&minus;</span>
-    </button>
-    <div class="connect-body" id="connectBody">
-      <div id="formFields">
-        <label>API Key ID</label>
-        <input type="text" id="apiKey" placeholder="PK..." />
-        <label>Secret Key</label>
-        <input type="password" id="secretKey" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
-        <label>Base URL</label>
-        <input type="text" id="baseUrl" value="https://paper-api.alpaca.markets" />
-        <div class="hint">Use paper-api.alpaca.markets for paper trading keys. Keys stay in this browser tab only.</div>
-        <label>Proxy URL (optional &mdash; needed if Alpaca blocks direct requests)</label>
-        <input type="text" id="proxyUrl" placeholder="https://your-worker.your-subdomain.workers.dev" />
-        <button class="primary" id="connectBtn">Connect</button>
-        <div class="error" id="errorMsg" style="display:none;"></div>
-      </div>
-      <button class="secondary" id="disconnectBtn" style="display:none;">Disconnect</button>
-    </div>
-  </div>
-
-  <div class="demo-banner" id="demoBanner">Showing sample data. Connect your Alpaca paper account above to see live numbers.</div>
-  <div class="warn-banner" id="killWarnBanner"></div>
-
-  <div class="stats">
-    <div class="card stat"><div class="stat-label">Total Equity</div><div class="stat-value" id="equityVal">$12,500.00</div></div>
-    <div class="card stat"><div class="stat-label">Day P/L</div><div class="stat-value up" id="dayPLVal">+$125.40 <span class="stat-sub" id="dayPLPct">+1.01%</span></div></div>
-    <div class="card stat"><div class="stat-label">Cash Reserves</div><div class="stat-value" id="cashVal">$4,800.00</div></div>
-    <div class="card stat"><div class="stat-label">Open Positions</div><div class="stat-value" id="positionsVal">3</div></div>
-  </div>
-
-  <div class="card chart-card">
-    <div class="section-head">
-      <div class="section-title">Equity &amp; Daily P/L</div>
-      <div class="section-sub">Last 15 sessions</div>
-    </div>
-    <div class="chart-body">
-      <div id="equityChartWrap"><div class="feed-empty">Connect to see equity history.</div></div>
-      <div class="daybar-row" id="dailyBarsWrap"></div>
-    </div>
-  </div>
-
-  <div class="stats3">
-    <div class="card stat3"><div class="stat-label">Trades</div><div class="stat-value" id="statTotalTrades">&mdash;</div></div>
-    <div class="card stat3"><div class="stat-label">Win rate</div><div class="stat-value" id="statWinRate">&mdash;</div></div>
-    <div class="card stat3"><div class="stat-label">Avg win</div><div class="stat-value" id="statAvgWin" style="color:#10B981;">&mdash;</div></div>
-    <div class="card stat3"><div class="stat-label">Avg loss</div><div class="stat-value" id="statAvgLoss" style="color:#EF4444;">&mdash;</div></div>
-  </div>
-
-  <div class="grid2">
-    <div class="card">
-      <div class="section-head">
-        <div class="section-title">Open Positions</div>
-        <div class="section-sub">Stop-loss at -30% &middot; take-profit at +50% &middot; closed by 3:45pm ET</div>
-      </div>
-      <table>
-        <thead><tr><th>Ticker</th><th>Qty</th><th>Entry</th><th>Current</th><th>P/L %</th><th>Risk</th></tr></thead>
-        <tbody id="positionsBody"><tr><td colspan="6" class="feed-empty">Connect to see open positions.</td></tr></tbody>
-      </table>
-    </div>
-    <div class="card">
-      <div class="section-head">
-        <div class="section-title">Signal &amp; Order Feed</div>
-        <div class="section-sub">Most recent bot actions</div>
-      </div>
-      <div class="feed-list" id="feedList"><div class="feed-empty">Connect to see recent orders.</div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="watchlist-head">
-      <div class="watchlist-title">Watchlist</div>
-      <div class="watchlist-sub">Buy = call signal, Sell = put signal &middot; 200 EMA trend + volume confirmed</div>
-    </div>
-    <table>
-      <thead><tr><th>Ticker</th><th>Price</th><th>20-bar MA</th><th>Signal</th></tr></thead>
-      <tbody id="watchlistBody"></tbody>
-    </table>
-  </div>
-
-  <div class="card rules-card" style="margin-top:24px;">
-    <div class="section-head">
-      <div class="section-title">Strategy Rules</div>
-      <div class="section-sub">Configured in GitHub Secrets &mdash; read-only here.</div>
-    </div>
-    <div class="rules-grid">
-      <div><div class="rule-label">Watchlist</div><div class="rule-value">AAPL &middot; MSFT &middot; GOOGL &middot; NVDA &middot; SPY &middot; AMZN &middot; JNJ &middot; UNH &middot; JPM &middot; BAC &middot; XOM &middot; CVX &middot; WMT &middot; COST &middot; QQQ &middot; IWM</div></div>
-      <div><div class="rule-label">Instrument</div><div class="rule-value">Long calls &amp; puts (ATM strike)</div></div>
-      <div><div class="rule-label">Bar interval</div><div class="rule-value">5-minute candles</div></div>
-      <div><div class="rule-label">Expiration window</div><div class="rule-value">5&ndash;10 days out</div></div>
-      <div><div class="rule-label">Entry rule</div><div class="rule-value">20-bar MA crossover + 200-bar EMA trend + 1.5x volume surge</div></div>
-      <div><div class="rule-label">Exit rule</div><div class="rule-value">Stop-loss / take-profit / end-of-day flatten</div></div>
-      <div><div class="rule-label">Position sizing</div><div class="rule-value">~$100 premium budget/trade (min 1 contract)</div></div>
-      <div><div class="rule-label">Stop-loss</div><div class="rule-value">-30% of premium paid</div></div>
-      <div><div class="rule-label">Take-profit</div><div class="rule-value">+50% of premium paid</div></div>
-      <div><div class="rule-label">Day-trading rule</div><div class="rule-value">All positions closed by 3:45pm ET &mdash; never held overnight</div></div>
-      <div><div class="rule-label">Notifications</div><div class="rule-value">Discord webhook</div></div>
-    </div>
-  </div>
-</div>
-
-<div class="settings-overlay" id="settingsOverlay">
-  <div class="settings-drawer">
-    <div class="settings-header">
-      <span>Settings</span>
-      <button id="settingsClose" aria-label="Close">&times;</button>
-    </div>
-    <div class="settings-body">
-      <div class="settings-nav">
-        <button class="settings-tab active" data-tab="alerts">Alert history</button>
-        <button class="settings-tab" data-tab="exposure">Exposure</button>
-        <button class="settings-tab" data-tab="trades">Trade history</button>
-        <button class="settings-tab" data-tab="notifications">Notifications</button>
-        <button class="settings-tab" data-tab="export">Export</button>
-        <button class="settings-tab" data-tab="appearance">Appearance</button>
-      </div>
-      <div class="settings-content">
-        <div class="settings-pane" id="pane-alerts">
-          <h3>Alert history</h3>
-          <div id="alertLogList"><div class="feed-empty">No alerts yet. This fills in as positions approach risk thresholds or orders fill.</div></div>
-          <button class="settings-btn ghost" id="clearAlertsBtn" style="margin-top:12px;">Clear log</button>
-        </div>
-        <div class="settings-pane" id="pane-exposure" style="display:none;">
-          <h3>Sector exposure</h3>
-          <div id="exposureBody"><div class="feed-empty">Connect and hold a position to see exposure.</div></div>
-        </div>
-        <div class="settings-pane" id="pane-trades" style="display:none;">
-          <h3>Trade history</h3>
-          <div id="tradeHistoryList"><div class="feed-empty">Connect to see individual trades.</div></div>
-        </div>
-        <div class="settings-pane" id="pane-notifications" style="display:none;">
-          <h3>Notifications</h3>
-          <div class="toggle-row">
-            <span>Sound on new fill</span>
-            <label class="switch"><input type="checkbox" id="prefSound"><span class="track"></span></label>
-          </div>
-          <div class="toggle-row">
-            <span>Browser alert on fill / market open</span>
-            <label class="switch"><input type="checkbox" id="prefNotify"><span class="track"></span></label>
-          </div>
-          <div class="hint" style="margin-top:10px;">Browser alerts need your permission the first time you turn them on.</div>
-        </div>
-        <div class="settings-pane" id="pane-export" style="display:none;">
-          <h3>Export</h3>
-          <div class="hint" style="margin-bottom:12px;">Downloads the filled orders currently loaded in the Signal &amp; Order Feed.</div>
-          <button class="settings-btn" id="exportCsvBtn">Export trade history (CSV)</button>
-        </div>
-        <div class="settings-pane" id="pane-appearance" style="display:none;">
-          <h3>Appearance</h3>
-          <div class="toggle-row">
-            <span>Dark mode</span>
-            <label class="switch"><input type="checkbox" id="prefDark"><span class="track"></span></label>
-          </div>
-          <div class="color-row">
-            <span>Accent color</span>
-            <input type="color" id="accentPicker" value="#7C3AED">
-            <button class="settings-btn ghost" id="resetAccentBtn">Reset</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-const WATCHLIST = [
-  "AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN",
-  "JNJ", "UNH", "JPM", "BAC", "XOM", "CVX", "WMT", "COST", "QQQ", "IWM",
-];
-const SECTOR_MAP = {
-  AAPL: "Tech", MSFT: "Tech", GOOGL: "Tech", NVDA: "Tech", AMZN: "Consumer",
-  SPY: "Broad market", QQQ: "Broad market", IWM: "Broad market",
-  JNJ: "Healthcare", UNH: "Healthcare",
-  JPM: "Financials", BAC: "Financials",
-  XOM: "Energy", CVX: "Energy",
-  WMT: "Consumer", COST: "Consumer",
-};
-const SECTOR_COLORS = {
-  "Tech": "#7C3AED", "Consumer": "#F59E0B", "Broad market": "#10B981",
-  "Healthcare": "#EC4899", "Financials": "#0EA5E9", "Energy": "#F97316",
-  "Other": "#64748B",
-};
-
-// --- Options bot parameters (matches options_bot.py) ---
-const EMA_TREND_WINDOW = 200;
-const VOLUME_AVG_WINDOW = 20;
-const VOLUME_SURGE_MULTIPLIER = 1.5;
-const OPTION_STOP_LOSS_PCT = -30;
-const OPTION_TAKE_PROFIT_PCT = 50;
-
-// Parses an OCC-format option symbol like "AAPL260130C00235000" into its parts.
-function parseOptionSymbol(symbol) {
-  const m = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/);
-  if (!m) return null;
-  const [, underlying, yy, mm, dd, cp, strikeRaw] = m;
-  const strike = parseInt(strikeRaw, 10) / 1000;
-  const expiration = `20${yy}-${mm}-${dd}`;
-  return { underlying, type: cp === "C" ? "Call" : "Put", strike, expiration };
-}
-
-function formatOptionLabel(symbol) {
-  const parsed = parseOptionSymbol(symbol);
-  if (!parsed) return symbol;
-  const expShort = new Date(parsed.expiration + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${parsed.underlying} $${parsed.strike.toFixed(0)} ${parsed.type} ${expShort}`;
-}
-const MA_WINDOW = 20;
-const TIMEFRAME = "5Min";
-const REFRESH_SECONDS = 30;
-const DEFAULT_ACCENT = "#7C3AED";
-
-const DEMO = {
-  equity: 12500.0, cash: 4800.0, dayPL: 125.4, dayPLPct: 1.01, openPositions: 3,
-  watchlist: [
-    { ticker: "AAPL", price: 232.45, ma: 229.1, signal: "Buy" },
-    { ticker: "MSFT", price: 442.8, ma: 445.2, signal: "Sell" },
-    { ticker: "GOOGL", price: 189.2, ma: 188.5, signal: "Buy" },
-    { ticker: "NVDA", price: 128.6, ma: 127.4, signal: "Buy" },
-    { ticker: "SPY", price: 562.3, ma: 562.1, signal: "None" },
-    { ticker: "AMZN", price: 221.7, ma: 223.0, signal: "None" },
-    { ticker: "JNJ", price: 158.4, ma: 158.9, signal: "None" },
-    { ticker: "UNH", price: 512.3, ma: 508.7, signal: "Buy" },
-    { ticker: "JPM", price: 224.6, ma: 225.1, signal: "None" },
-    { ticker: "BAC", price: 44.8, ma: 44.5, signal: "Buy" },
-    { ticker: "XOM", price: 118.2, ma: 119.0, signal: "Sell" },
-    { ticker: "CVX", price: 162.7, ma: 162.3, signal: "None" },
-    { ticker: "WMT", price: 96.4, ma: 96.1, signal: "None" },
-    { ticker: "COST", price: 972.5, ma: 968.2, signal: "Buy" },
-    { ticker: "QQQ", price: 498.1, ma: 497.6, signal: "None" },
-    { ticker: "IWM", price: 221.9, ma: 223.4, signal: "Sell" },
-  ],
-};
-
-let connected = false;
-let session = null;
-let refreshCountdown = REFRESH_SECONDS;
-let lastPositions = [];
-let lastFilledOrders = [];
-let knownOrderIds = new Set();
-let riskState = {};
-let prevMarketOpen = null;
-
-/* ---------- persistence helpers ---------- */
-function loadJSON(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
-}
-function saveJSON(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
-}
-
-/* ---------- theme + accent ---------- */
-function applyTheme() {
-  const dark = loadJSON("tb_dark", false);
-  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  document.getElementById("prefDark").checked = dark;
-}
-function applyAccent() {
-  const accent = loadJSON("tb_accent", DEFAULT_ACCENT);
-  document.documentElement.style.setProperty("--accent", accent);
-  document.getElementById("accentPicker").value = accent;
-}
-applyTheme();
-applyAccent();
-
-/* ---------- settings drawer ---------- */
-const overlay = document.getElementById("settingsOverlay");
-document.getElementById("settingsBtn").addEventListener("click", () => { overlay.style.display = "block"; });
-document.getElementById("settingsClose").addEventListener("click", () => { overlay.style.display = "none"; });
-overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
-
-document.querySelectorAll(".settings-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".settings-tab").forEach((t) => t.classList.remove("active"));
-    document.querySelectorAll(".settings-pane").forEach((p) => (p.style.display = "none"));
-    tab.classList.add("active");
-    document.getElementById("pane-" + tab.dataset.tab).style.display = "block";
-    if (tab.dataset.tab === "exposure") renderExposure();
-    if (tab.dataset.tab === "trades") renderTradeHistory(lastFilledOrders);
-  });
-});
-
-document.getElementById("prefDark").addEventListener("change", (e) => {
-  saveJSON("tb_dark", e.target.checked);
-  applyTheme();
-});
-document.getElementById("accentPicker").addEventListener("input", (e) => {
-  saveJSON("tb_accent", e.target.value);
-  document.documentElement.style.setProperty("--accent", e.target.value);
-});
-document.getElementById("resetAccentBtn").addEventListener("click", () => {
-  saveJSON("tb_accent", DEFAULT_ACCENT);
-  applyAccent();
-});
-
-document.getElementById("prefSound").checked = loadJSON("tb_sound", false);
-document.getElementById("prefNotify").checked = loadJSON("tb_notify", false);
-document.getElementById("prefSound").addEventListener("change", (e) => saveJSON("tb_sound", e.target.checked));
-document.getElementById("prefNotify").addEventListener("change", (e) => {
-  saveJSON("tb_notify", e.target.checked);
-  if (e.target.checked && "Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
-});
-
-document.getElementById("clearAlertsBtn").addEventListener("click", () => {
-  saveJSON("tb_alert_log", []);
-  renderAlertLog();
-});
-
-document.getElementById("exportCsvBtn").addEventListener("click", () => {
-  if (!lastFilledOrders.length) return;
-  const rows = [["Date", "Symbol", "Side", "Qty", "Price"]];
-  lastFilledOrders.forEach((o) => {
-    const date = o.filled_at ? new Date(o.filled_at).toISOString() : "";
-    rows.push([date, o.symbol, o.side, o.filled_qty || o.qty, o.filled_avg_price || ""]);
-  });
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "trade-history.csv";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-/* ---------- alert log ---------- */
-function logAlert(type, message) {
-  const log = loadJSON("tb_alert_log", []);
-  log.unshift({ ts: Date.now(), type, message });
-  saveJSON("tb_alert_log", log.slice(0, 50));
-  renderAlertLog();
-}
-function renderAlertLog() {
-  const el = document.getElementById("alertLogList");
-  const log = loadJSON("tb_alert_log", []);
-  if (!log.length) {
-    el.innerHTML = '<div class="feed-empty">No alerts yet. This fills in as positions approach risk thresholds or orders fill.</div>';
-    return;
-  }
-  el.innerHTML = log.map((e) => `
-    <div class="alert-entry ${e.type}">
-      <div class="t">${new Date(e.ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
-      <div>${e.message}</div>
-    </div>
-  `).join("");
-}
-renderAlertLog();
-
-/* ---------- exposure ---------- */
-function renderExposure() {
-  const el = document.getElementById("exposureBody");
-  if (!lastPositions.length) {
-    el.innerHTML = '<div class="feed-empty">Connect and hold a position to see exposure.</div>';
-    return;
-  }
-  const totals = {};
-  let grandTotal = 0;
-  lastPositions.forEach((p) => {
-    const parsed = parseOptionSymbol(p.symbol);
-    const underlying = parsed ? parsed.underlying : p.symbol;
-    const sector = SECTOR_MAP[underlying] || "Other";
-    // Option contracts control 100 shares of exposure each; premium is quoted per-share.
-    const multiplier = parsed ? 100 : 1;
-    const value = parseFloat(p.qty) * parseFloat(p.current_price) * multiplier;
-    totals[sector] = (totals[sector] || 0) + value;
-    grandTotal += value;
-  });
-  const bar = Object.entries(totals).map(([sector, val]) => {
-    const pct = grandTotal ? (val / grandTotal) * 100 : 0;
-    return `<div style="width:${pct}%;background:${SECTOR_COLORS[sector] || SECTOR_COLORS.Other};"></div>`;
-  }).join("");
-  const rows = Object.entries(totals).map(([sector, val]) => {
-    const pct = grandTotal ? (val / grandTotal) * 100 : 0;
-    return `<div class="exposure-row">
-      <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${SECTOR_COLORS[sector] || SECTOR_COLORS.Other};margin-right:6px;"></span>${sector}</span>
-      <span>${pct.toFixed(0)}% &middot; $${val.toFixed(2)}</span>
-    </div>`;
-  }).join("");
-  el.innerHTML = `<div class="exposure-bar">${bar}</div>${rows}`;
-}
-
-function fmtMoney(n) {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
-
-function tick() {
-  document.getElementById("clock").textContent = new Date().toLocaleTimeString("en-US", { hour12: true });
-  if (connected) {
-    refreshCountdown -= 1;
-    if (refreshCountdown <= 0) {
-      refreshCountdown = REFRESH_SECONDS;
-      loadAllData(true);
-    }
-    document.getElementById("refreshLine").textContent = `Next refresh in ${refreshCountdown}s`;
-  } else {
-    document.getElementById("refreshLine").textContent = "";
-  }
-}
-setInterval(tick, 1000);
-tick();
-
-function renderWatchlist(rows) {
-  const body = document.getElementById("watchlistBody");
-  body.innerHTML = "";
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="ticker">${row.ticker}</td>
-      <td class="mono">${row.price != null ? "$" + row.price.toFixed(2) : "&mdash;"}</td>
-      <td class="ma">${row.ma != null ? "$" + row.ma.toFixed(2) : "&mdash;"}</td>
-      <td class="signal"><span class="badge ${row.signal}">${row.signal}</span></td>
-    `;
-    body.appendChild(tr);
-  });
-}
-
-function renderStats(equity, cash, dayPL, dayPLPct, positions) {
-  document.getElementById("equityVal").textContent = fmtMoney(equity);
-  document.getElementById("cashVal").textContent = fmtMoney(cash);
-  document.getElementById("positionsVal").textContent = positions;
-  const plEl = document.getElementById("dayPLVal");
-  const sign = dayPL >= 0 ? "+" : "";
-  plEl.className = "stat-value " + (dayPL >= 0 ? "up" : "down");
-  plEl.innerHTML = `${sign}${fmtMoney(dayPL)} <span class="stat-sub">${sign}${dayPLPct.toFixed(2)}%</span>`;
-}
-
-function renderPositions(positions) {
-  lastPositions = positions;
-  const body = document.getElementById("positionsBody");
-  if (!positions.length) {
-    body.innerHTML = '<tr><td colspan="6" class="feed-empty">No open positions.</td></tr>';
-  } else {
-    body.innerHTML = "";
-    positions.forEach((p) => {
-      const plPct = parseFloat(p.unrealized_plpc) * 100;
-      let risk = '<span class="risk-none">&mdash;</span>';
-      if (plPct <= OPTION_STOP_LOSS_PCT) risk = '<span class="risk-kill">stop-loss</span>';
-      else if (plPct >= OPTION_TAKE_PROFIT_PCT) risk = '<span class="risk-trailing">&#127919; take-profit</span>';
-      const label = formatOptionLabel(p.symbol);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="ticker">${label}</td>
-        <td class="mono">${p.qty}</td>
-        <td class="mono">$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
-        <td class="mono">$${parseFloat(p.current_price).toFixed(2)}</td>
-        <td class="mono" style="color:${plPct >= 0 ? '#10B981' : '#EF4444'}">${plPct >= 0 ? "+" : ""}${plPct.toFixed(2)}%</td>
-        <td>${risk}</td>
-      `;
-      body.appendChild(tr);
-    });
-  }
-  checkKillSwitchWarning(positions);
-  trackRiskAlerts(positions);
-}
-
-function checkKillSwitchWarning(positions) {
-  const banner = document.getElementById("killWarnBanner");
-  const warnThreshold = OPTION_STOP_LOSS_PCT + 10; // give a heads-up 10 points before the stop-loss fires
-  const warn = positions.filter((p) => parseFloat(p.unrealized_plpc) * 100 <= warnThreshold);
-  if (warn.length) {
-    banner.style.display = "block";
-    banner.textContent = `Approaching stop-loss (${OPTION_STOP_LOSS_PCT}%): ` + warn
-      .map((p) => `${formatOptionLabel(p.symbol)} ${(parseFloat(p.unrealized_plpc) * 100).toFixed(2)}%`)
-      .join(", ");
-  } else {
-    banner.style.display = "none";
-  }
-}
-
-function trackRiskAlerts(positions) {
-  const seen = new Set();
-  const warnThreshold = OPTION_STOP_LOSS_PCT + 10;
-  positions.forEach((p) => {
-    const sym = p.symbol;
-    seen.add(sym);
-    const plPct = parseFloat(p.unrealized_plpc) * 100;
-    const prev = riskState[sym];
-    const label = formatOptionLabel(sym);
-    if (plPct <= OPTION_STOP_LOSS_PCT && prev !== "stop") {
-      logAlert("danger", `Stop-loss triggered: ${label} at ${plPct.toFixed(2)}%`);
-      riskState[sym] = "stop";
-    } else if (plPct <= warnThreshold && prev !== "stop" && prev !== "warn") {
-      logAlert("warn", `Approaching stop-loss: ${label} at ${plPct.toFixed(2)}%`);
-      riskState[sym] = "warn";
-    } else if (plPct >= OPTION_TAKE_PROFIT_PCT && prev !== "profit") {
-      logAlert("info", `Take-profit reached: ${label} at +${plPct.toFixed(2)}%`);
-      riskState[sym] = "profit";
-    } else if (plPct > warnThreshold && plPct < OPTION_TAKE_PROFIT_PCT) {
-      riskState[sym] = null;
-    }
-  });
-  Object.keys(riskState).forEach((sym) => { if (!seen.has(sym)) delete riskState[sym]; });
-}
-
-function notifyIfEnabled(title, body) {
-  if (loadJSON("tb_sound", false)) playBeep();
-  if (loadJSON("tb_notify", false) && "Notification" in window && Notification.permission === "granted") {
-    new Notification(title, { body });
-  }
-}
-
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.value = 0.08;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    setTimeout(() => { osc.stop(); ctx.close(); }, 180);
-  } catch (e) {}
-}
-
-async function fetchAndRenderFeed(headers, proxyUrl) {
-  const feedList = document.getElementById("feedList");
-  if (!proxyUrl) {
-    feedList.innerHTML = '<div class="feed-empty">Feed needs the proxy worker (see Proxy URL field).</div>';
-    resetTradeStats();
-    return;
-  }
-  try {
-    const url = `${proxyUrl.replace(/\/$/, "")}/api/orders?status=closed&limit=50&direction=desc`;
-    const res = await fetch(url, { headers });
-    if (!res.ok) throw new Error(`Orders request failed (${res.status})`);
-    const orders = await res.json();
-    const filled = orders.filter((o) => o.status === "filled");
-    lastFilledOrders = filled;
-
-    filled.forEach((o) => {
-      if (!knownOrderIds.has(o.id)) {
-        knownOrderIds.add(o.id);
-        logAlert("trade", `${o.side === "buy" ? "Buy" : "Sell"} filled: ${formatOptionLabel(o.symbol)} ${o.filled_qty || o.qty}x @ $${o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?"}`);
-      }
-    });
-
-    renderTradeStats(computeTradeStats(filled));
-
-    const recent = filled.slice(0, 8);
-    if (!recent.length) {
-      feedList.innerHTML = '<div class="feed-empty">No filled orders yet.</div>';
-      return;
-    }
-    feedList.innerHTML = "";
-    recent.forEach((o) => {
-      const isBuy = o.side === "buy";
-      const price = o.filled_avg_price ? parseFloat(o.filled_avg_price).toFixed(2) : "?";
-      const qty = o.filled_qty || o.qty;
-      const label = formatOptionLabel(o.symbol);
-      const reason = isBuy
-        ? `20-bar MA crossover, confirmed by 200-bar EMA trend + 1.5x volume surge.`
-        : `Position closed &mdash; stop-loss, take-profit, or end-of-day flatten.`;
-      const div = document.createElement("div");
-      div.className = "feed-item";
-      div.innerHTML = `
-        <div class="feed-row">
-          <div class="feed-title ${isBuy ? "buy" : "sell"}">${isBuy ? "&#8599;" : "&#8600;"} ${isBuy ? "Buy" : "Sell"} &middot; ${label}</div>
-          <div class="feed-amt">$${price} &times; ${qty}</div>
-        </div>
-        <div class="feed-sub">${reason}</div>
-      `;
-      feedList.appendChild(div);
-    });
-  } catch (e) {
-    feedList.innerHTML = `<div class="feed-empty">Couldn't load order feed: ${e.message}</div>`;
-    resetTradeStats();
-  }
-}
-
-function renderTradeHistory(filledDesc) {
-  const el = document.getElementById("tradeHistoryList");
-  if (!el) return;
-  if (!filledDesc.length) {
-    el.innerHTML = '<div class="feed-empty">Connect to see individual trades.</div>';
-    return;
-  }
-
-  // Walk chronologically to match sells against FIFO buy lots, same rule as computeTradeStats,
-  // but keep every individual leg (buys included) for display, tagged with its side.
-  const chronological = filledDesc.slice().reverse();
-  const openBuys = {};
-  const rows = [];
-
-  chronological.forEach((o) => {
-    const sym = o.symbol;
-    const qty = parseFloat(o.filled_qty || o.qty);
-    const price = parseFloat(o.filled_avg_price);
-    const when = o.filled_at ? new Date(o.filled_at) : null;
-    if (!qty || !price) return;
-
-    if (o.side === "buy") {
-      if (!openBuys[sym]) openBuys[sym] = [];
-      openBuys[sym].push({ qty, price });
-      rows.push({ symbol: sym, side: "buy", qty, price, when, plPct: null });
-    } else if (o.side === "sell") {
-      let remaining = qty;
-      let weightedPl = 0;
-      let matched = 0;
-      while (remaining > 0 && openBuys[sym] && openBuys[sym].length) {
-        const lot = openBuys[sym][0];
-        const matchQty = Math.min(remaining, lot.qty);
-        const pl = ((price - lot.price) / lot.price) * 100;
-        weightedPl += pl * matchQty;
-        matched += matchQty;
-        lot.qty -= matchQty;
-        remaining -= matchQty;
-        if (lot.qty <= 0) openBuys[sym].shift();
-      }
-      const plPct = matched ? weightedPl / matched : null;
-      rows.push({ symbol: sym, side: "sell", qty, price, when, plPct });
-    }
-  });
-
-  rows.reverse(); // newest first for display
-
-  el.innerHTML = rows.map((r) => {
-    const dateStr = r.when
-      ? r.when.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-      : "";
-    const plHtml = r.plPct != null
-      ? `<span class="trade-pl" style="color:${r.plPct >= 0 ? '#10B981' : '#EF4444'}">${r.plPct >= 0 ? "+" : ""}${r.plPct.toFixed(2)}%</span>`
-      : `<span class="trade-pl" style="color:var(--text-muted)">open</span>`;
-    return `
-      <div class="trade-row">
-        <div class="trade-top">
-          <span><span class="trade-side ${r.side}">${r.side === "buy" ? "&#8599; Buy" : "&#8600; Sell"}</span> ${formatOptionLabel(r.symbol)}</span>
-          ${plHtml}
-        </div>
-        <div class="trade-meta">${r.qty}x @ $${r.price.toFixed(2)}/contract &middot; ${dateStr}</div>
-      </div>
-    `;
-  }).join("");
-}
-
-function computeTradeStats(filledDesc) {
-  const filled = filledDesc.slice().reverse();
-  const openBuys = {};
-  let wins = 0, losses = 0, totalTrades = 0, sumWinPct = 0, sumLossPct = 0;
-  filled.forEach((o) => {
-    const sym = o.symbol;
-    const qty = parseFloat(o.filled_qty || o.qty);
-    const price = parseFloat(o.filled_avg_price);
-    if (!qty || !price) return;
-    if (o.side === "buy") {
-      if (!openBuys[sym]) openBuys[sym] = [];
-      openBuys[sym].push({ qty, price });
-    } else if (o.side === "sell") {
-      let remaining = qty;
-      while (remaining > 0 && openBuys[sym] && openBuys[sym].length) {
-        const lot = openBuys[sym][0];
-        const matchQty = Math.min(remaining, lot.qty);
-        const pl = ((price - lot.price) / lot.price) * 100;
-        totalTrades++;
-        if (pl >= 0) { wins++; sumWinPct += pl; } else { losses++; sumLossPct += pl; }
-        lot.qty -= matchQty;
-        remaining -= matchQty;
-        if (lot.qty <= 0) openBuys[sym].shift();
-      }
-    }
-  });
-  return {
-    totalTrades,
-    winRate: totalTrades ? (wins / totalTrades) * 100 : 0,
-    avgWin: wins ? sumWinPct / wins : 0,
-    avgLoss: losses ? sumLossPct / losses : 0,
-  };
-}
-
-function renderTradeStats(stats) {
-  document.getElementById("statTotalTrades").textContent = stats.totalTrades;
-  document.getElementById("statWinRate").textContent = stats.totalTrades ? stats.winRate.toFixed(0) + "%" : "&mdash;";
-  document.getElementById("statAvgWin").textContent = stats.totalTrades ? (stats.avgWin >= 0 ? "+" : "") + stats.avgWin.toFixed(2) + "%" : "&mdash;";
-  document.getElementById("statAvgLoss").textContent = stats.totalTrades ? stats.avgLoss.toFixed(2) + "%" : "&mdash;";
-}
-
-function resetTradeStats() {
-  renderTradeStats({ totalTrades: 0, winRate: 0, avgWin: 0, avgLoss: 0 });
-}
-
-async function fetchMarketStatus(headers, baseUrl, proxyUrl) {
-  const badge = document.getElementById("marketBadge");
-  try {
-    const url = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/clock` : `${baseUrl}/v2/clock`;
-    const res = await fetch(url, { headers });
-    if (!res.ok) throw new Error();
-    const clock = await res.json();
-    badge.style.display = "inline-block";
-    badge.textContent = clock.is_open ? "Market open" : "Market closed";
-    badge.className = "market-badge " + (clock.is_open ? "open" : "closed");
-    if (prevMarketOpen === false && clock.is_open === true) {
-      notifyIfEnabled("Market open", "Alpaca market hours have started.");
-    }
-    prevMarketOpen = clock.is_open;
-  } catch (e) {
-    badge.style.display = "none";
-  }
-}
-
-async function fetchEquityHistory(headers, baseUrl, proxyUrl) {
-  const chartWrap = document.getElementById("equityChartWrap");
-  const barsWrap = document.getElementById("dailyBarsWrap");
-  try {
-    const url = proxyUrl
-      ? `${proxyUrl.replace(/\/$/, "")}/api/portfolio-history?period=1M&timeframe=1D`
-      : `${baseUrl}/v2/account/portfolio/history?period=1M&timeframe=1D`;
-    const res = await fetch(url, { headers });
-    if (!res.ok) throw new Error(`Portfolio history request failed (${res.status})`);
-    const data = await res.json();
-    const rawEquity = data.equity || [];
-    const rawTimestamps = data.timestamp || [];
-    const pairs = rawEquity.map((v, i) => ({ v, t: rawTimestamps[i] })).filter((p) => p.v != null).slice(-15);
-    const equity = pairs.map((p) => p.v);
-    const timestamps = pairs.map((p) => p.t);
-    renderEquityChart(equity, timestamps, chartWrap);
-    renderDailyBars(equity, timestamps, barsWrap);
-  } catch (e) {
-    chartWrap.innerHTML = `<div class="feed-empty">Couldn't load equity history: ${e.message}</div>`;
-    barsWrap.innerHTML = "";
-  }
-}
-
-function fmtChartDate(ts) {
-  return ts ? new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
-}
-
-function renderEquityChart(equity, timestamps, wrap) {
-  if (equity.length < 2) {
-    wrap.innerHTML = '<div class="feed-empty">Not enough history yet.</div>';
-    return;
-  }
-  const w = 700, h = 160, padL = 64, padR = 12, padT = 16, padB = 26;
-  const min = Math.min(...equity), max = Math.max(...equity);
-  const range = (max - min) || 1;
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-  const stepX = equity.length > 1 ? plotW / (equity.length - 1) : 0;
-  const points = equity.map((v, i) => {
-    const x = padL + i * stepX;
-    const y = padT + plotH * (1 - (v - min) / range);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const color = equity[equity.length - 1] >= equity[0] ? "#10B981" : "#EF4444";
-  const lastVal = equity[equity.length - 1];
-  const lastX = padL + (equity.length - 1) * stepX;
-  const lastY = padT + plotH * (1 - (lastVal - min) / range);
-  const firstDate = fmtChartDate(timestamps[0]);
-  const lastDate = fmtChartDate(timestamps[timestamps.length - 1]);
-
-  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:160px;display:block;">
-    <line x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}" style="stroke:var(--border-soft)" stroke-width="1"/>
-    <line x1="${padL}" y1="${(padT + plotH / 2).toFixed(1)}" x2="${w - padR}" y2="${(padT + plotH / 2).toFixed(1)}" style="stroke:var(--border-soft)" stroke-width="1"/>
-    <line x1="${padL}" y1="${(padT + plotH).toFixed(1)}" x2="${w - padR}" y2="${(padT + plotH).toFixed(1)}" style="stroke:var(--border-soft)" stroke-width="1"/>
-    <text x="${padL - 8}" y="${padT + 4}" text-anchor="end" font-size="10" font-family="monospace" style="fill:var(--text-muted)">$${Math.round(max).toLocaleString()}</text>
-    <text x="${padL - 8}" y="${(padT + plotH / 2 + 4).toFixed(1)}" text-anchor="end" font-size="10" font-family="monospace" style="fill:var(--text-muted)">$${Math.round((max + min) / 2).toLocaleString()}</text>
-    <text x="${padL - 8}" y="${(padT + plotH + 4).toFixed(1)}" text-anchor="end" font-size="10" font-family="monospace" style="fill:var(--text-muted)">$${Math.round(min).toLocaleString()}</text>
-    <text x="${padL}" y="${h - 6}" text-anchor="start" font-size="10" style="fill:var(--text-muted)">${firstDate}</text>
-    <text x="${w - padR}" y="${h - 6}" text-anchor="end" font-size="10" style="fill:var(--text-muted)">${lastDate}</text>
-    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3.5" fill="${color}"/>
-    <text x="${lastX.toFixed(1)}" y="${(lastY - 10).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" font-family="monospace" fill="${color}">$${Math.round(lastVal).toLocaleString()}</text>
-  </svg>`;
-}
-
-function renderDailyBars(equity, timestamps, wrap) {
-  const diffs = [];
-  const diffTimestamps = [];
-  for (let i = 1; i < equity.length; i++) {
-    diffs.push(equity[i] - equity[i - 1]);
-    diffTimestamps.push(timestamps[i]);
-  }
-  const last7 = diffs.slice(-7);
-  const last7Timestamps = diffTimestamps.slice(-7);
-  if (!last7.length) { wrap.innerHTML = ""; return; }
-  const maxAbs = Math.max(...last7.map((d) => Math.abs(d)), 1);
-  wrap.innerHTML = last7.map((d, i) => {
-    const pct = Math.max(8, (Math.abs(d) / maxAbs) * 100);
-    const color = d >= 0 ? "#10B981" : "#EF4444";
-    const dayLabel = last7Timestamps[i]
-      ? new Date(last7Timestamps[i] * 1000).toLocaleDateString("en-US", { weekday: "short" })
-      : "";
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
-      <div style="width:60%;flex:1;display:flex;align-items:flex-end;">
-        <div style="width:100%;height:${pct}%;background:${color};border-radius:2px;"></div>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">${dayLabel}</div>
-    </div>`;
-  }).join("");
-}
-
-function showDemo() {
-  renderStats(DEMO.equity, DEMO.cash, DEMO.dayPL, DEMO.dayPLPct, DEMO.openPositions);
-  renderWatchlist(DEMO.watchlist);
-}
-showDemo();
-
-async function computeSignals(headers, proxyUrl) {
-  const symbols = WATCHLIST.join(",");
-  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const barsQuery = `symbols=${symbols}&timeframe=${TIMEFRAME}&start=${start}&limit=10000&feed=iex`;
-  const barsUrl = proxyUrl
-    ? `${proxyUrl.replace(/\/$/, "")}/api/bars?${barsQuery}`
-    : `https://data.alpaca.markets/v2/stocks/bars?${barsQuery}`;
-  const res = await fetch(barsUrl, { headers });
-  if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
-  const data = await res.json();
-  const bars = data.bars || {};
-
-  return WATCHLIST.map((ticker) => {
-    const series = bars[ticker] || [];
-    const minBarsNeeded = Math.max(MA_WINDOW, EMA_TREND_WINDOW, VOLUME_AVG_WINDOW) + 1;
-    if (series.length < minBarsNeeded) return { ticker, price: null, ma: null, signal: "None" };
-
-    const closes = series.map((b) => b.c);
-    const volumes = series.map((b) => b.v || 0);
-
-    const maAt = (endIdxExclusive) => {
-      const window = closes.slice(endIdxExclusive - MA_WINDOW, endIdxExclusive);
-      return window.reduce((a, b) => a + b, 0) / window.length;
-    };
-    const volAvgAt = (endIdxExclusive) => {
-      const window = volumes.slice(endIdxExclusive - VOLUME_AVG_WINDOW, endIdxExclusive);
-      return window.reduce((a, b) => a + b, 0) / window.length;
-    };
-    // EMA over the whole available series (matches pandas .ewm(span=N, adjust=False))
-    const emaSeries = (() => {
-      const k = 2 / (EMA_TREND_WINDOW + 1);
-      const out = [closes[0]];
-      for (let i = 1; i < closes.length; i++) out.push(closes[i] * k + out[i - 1] * (1 - k));
-      return out;
-    })();
-
-    const n = closes.length;
-    const currentClose = closes[n - 1];
-    const previousClose = closes[n - 2];
-    const currentMA = maAt(n);
-    const previousMA = maAt(n - 1);
-    const currentEMA200 = emaSeries[n - 1];
-    const currentVolume = volumes[n - 1];
-    const currentVolAvg = volAvgAt(n);
-
-    const volumeOk = currentVolAvg > 0 && currentVolume >= currentVolAvg * VOLUME_SURGE_MULTIPLIER;
-
-    let signal = "None";
-    if (previousClose < previousMA && currentClose > currentMA && currentClose > currentEMA200 && volumeOk) {
-      signal = "Buy";
-    } else if (previousClose > previousMA && currentClose < currentMA && currentClose < currentEMA200 && volumeOk) {
-      signal = "Sell";
-    }
-    return { ticker, price: currentClose, ma: currentMA, signal };
-  });
-}
-
-async function loadAllData(isBackgroundRefresh) {
-  if (!session) return;
-  const { headers, baseUrl, proxyUrl } = session;
-  const errorMsg = document.getElementById("errorMsg");
-  const btn = document.getElementById("connectBtn");
-
-  try {
-    const acctUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/account` : `${baseUrl}/v2/account`;
-    const posUrl = proxyUrl ? `${proxyUrl.replace(/\/$/, "")}/api/positions` : `${baseUrl}/v2/positions`;
-
-    const acctRes = await fetch(acctUrl, { headers });
-    if (!acctRes.ok) throw new Error(`Account request failed (${acctRes.status})`);
-    const acct = await acctRes.json();
-
-    const posRes = await fetch(posUrl, { headers });
-    if (!posRes.ok) throw new Error(`Positions request failed (${posRes.status})`);
-    const positions = await posRes.json();
-
-    const equity = parseFloat(acct.equity);
-    const lastEquity = parseFloat(acct.last_equity);
-    const dayPL = equity - lastEquity;
-    const dayPLPct = lastEquity ? (dayPL / lastEquity) * 100 : 0;
-
-    const signals = await computeSignals(headers, proxyUrl);
-
-    renderStats(equity, parseFloat(acct.cash), dayPL, dayPLPct, positions.length);
-    renderWatchlist(signals);
-    renderPositions(positions);
-    fetchAndRenderFeed(headers, proxyUrl);
-    fetchMarketStatus(headers, baseUrl, proxyUrl);
-    fetchEquityHistory(headers, baseUrl, proxyUrl);
-    if (document.getElementById("pane-exposure").style.display !== "none") renderExposure();
-    if (document.getElementById("pane-trades").style.display !== "none") renderTradeHistory(lastFilledOrders);
-
-    if (!isBackgroundRefresh) {
-      connected = true;
-      document.getElementById("statusDot").classList.add("live");
-      document.getElementById("statusText").textContent = "Live";
-      document.getElementById("demoBanner").style.display = "none";
-      document.getElementById("connectToggleLabel").textContent = "Connected to Alpaca";
-      document.getElementById("formFields").style.display = "none";
-      document.getElementById("disconnectBtn").style.display = "inline-block";
-      document.getElementById("connectBody").style.display = "none";
-      document.getElementById("connectToggleIcon").textContent = "+";
-    }
-  } catch (e) {
-    const corsHint = (e.message === "Failed to fetch" || e.message === "Load failed")
-      ? " This looks like a network/CORS block. Make sure your proxy worker URL is correct and deployed."
-      : "";
-    errorMsg.textContent = e.message + corsHint;
-    errorMsg.style.display = "block";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Connect";
-  }
-}
-
-document.getElementById("connectToggle").addEventListener("click", () => {
-  const body = document.getElementById("connectBody");
-  const icon = document.getElementById("connectToggleIcon");
-  const isOpen = body.style.display !== "none";
-  body.style.display = isOpen ? "none" : "block";
-  icon.textContent = isOpen ? "+" : "\u2212";
-});
-
-document.getElementById("connectBtn").addEventListener("click", async () => {
-  const apiKey = document.getElementById("apiKey").value.trim();
-  const secretKey = document.getElementById("secretKey").value.trim();
-  const baseUrl = document.getElementById("baseUrl").value.trim();
-  const proxyUrl = document.getElementById("proxyUrl").value.trim();
-  const errorMsg = document.getElementById("errorMsg");
-  const btn = document.getElementById("connectBtn");
-
-  if (!apiKey || !secretKey) return;
-
-  errorMsg.style.display = "none";
-  btn.disabled = true;
-  btn.textContent = "Connecting...";
-
-  session = {
-    headers: { "Apca-Api-Key-Id": apiKey, "Apca-Api-Secret-Key": secretKey },
-    baseUrl,
-    proxyUrl,
-  };
-  refreshCountdown = REFRESH_SECONDS;
-  await loadAllData(false);
-});
-
-document.getElementById("disconnectBtn").addEventListener("click", () => {
-  connected = false;
-  session = null;
-  document.getElementById("apiKey").value = "";
-  document.getElementById("secretKey").value = "";
-  document.getElementById("statusDot").classList.remove("live");
-  document.getElementById("statusText").textContent = "Demo data";
-  document.getElementById("demoBanner").style.display = "block";
-  document.getElementById("killWarnBanner").style.display = "none";
-  document.getElementById("marketBadge").style.display = "none";
-  document.getElementById("connectToggleLabel").textContent = "Connect your Alpaca account";
-  document.getElementById("formFields").style.display = "block";
-  document.getElementById("disconnectBtn").style.display = "none";
-  document.getElementById("errorMsg").style.display = "none";
-  document.getElementById("positionsBody").innerHTML = '<tr><td colspan="6" class="feed-empty">Connect to see open positions.</td></tr>';
-  document.getElementById("feedList").innerHTML = '<div class="feed-empty">Connect to see recent orders.</div>';
-  document.getElementById("equityChartWrap").innerHTML = '<div class="feed-empty">Connect to see equity history.</div>';
-  document.getElementById("dailyBarsWrap").innerHTML = "";
-  document.getElementById("tradeHistoryList").innerHTML = '<div class="feed-empty">Connect to see individual trades.</div>';
-  lastPositions = [];
-  lastFilledOrders = [];
-  resetTradeStats();
-  showDemo();
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
-</script>
-</body>
-</html>
+# pip install alpaca-trade-api requests yfinance pandas
+#
+# Day-trading OPTIONS bot — buys calls on bullish signals, puts on bearish
+# signals, using the same 5-min MA/EMA/volume signal engine as the stock bot.
+# Every position is closed by end of day — this bot never holds overnight.
+#
+# Runs as its own set of Render cron jobs, separate from trading_bot.py:
+#   - options_bot.py scan        -> every 5 min, market hours
+#   - options_bot.py manage      -> every 1 min, market hours (stop/target/EOD flatten)
+#
+# Uses the SAME Alpaca account/keys as your stock bot — both draw on the same
+# buying power. Keep that in mind when sizing trades across both bots.
+
+import datetime
+import os
+import sys
+import time
+import zoneinfo
+import alpaca_trade_api as tradeapi
+import pandas as pd
+import requests
+import yfinance as yf
+
+# ==============================================================================
+# STEP 1: CONFIGURATION & CREDENTIALS
+# ==============================================================================
+REQUIRED_VARS = ["ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_BASE_URL", "DISCORD_WEBHOOK_URL"]
+
+def check_required_env_vars():
+    missing = [name for name in REQUIRED_VARS if not os.environ.get(name, "").strip()]
+    print("🔎 Credential check:")
+    for name in REQUIRED_VARS:
+        value = os.environ.get(name)
+        print(f"   {name}: {'present (length ' + str(len(value)) + ')' if value else '❌ MISSING or empty'}")
+    if missing:
+        print("\n❌ STARTUP FAILED — missing: " + ", ".join(missing))
+        sys.exit(1)
+
+check_required_env_vars()
+
+ALPACA_API_KEY = os.environ["ALPACA_API_KEY"]
+ALPACA_SECRET_KEY = os.environ["ALPACA_SECRET_KEY"]
+ALPACA_BASE_URL = os.environ["ALPACA_BASE_URL"]
+DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
+
+print(f"🔗 Alpaca base URL: {ALPACA_BASE_URL}")
+if "paper" in ALPACA_BASE_URL:
+    print("⚠️  PAPER trading mode active. No real money at risk.")
+else:
+    print("🟣 LIVE trading mode active. REAL money is at risk.")
+
+# Same watchlist as the stock bot — all liquid, listed-options names
+WATCHLIST = [
+    "AAPL", "MSFT", "GOOGL", "NVDA", "SPY", "AMZN",
+    "JNJ", "UNH", "JPM", "BAC", "XOM", "CVX", "WMT", "COST", "QQQ", "IWM",
+]
+
+# --- Signal engine (same as stock bot: 5-min bars, 20-bar MA, 200 EMA trend filter, volume surge) ---
+BAR_INTERVAL = "5m"
+LOOKBACK_PERIOD = "30d"
+MA_WINDOW = 20
+EMA_TREND_WINDOW = 200
+VOLUME_AVG_WINDOW = 20
+VOLUME_SURGE_MULTIPLIER = 1.5
+RECENT_ENTRY_BLOCK_MINUTES = 5
+
+# --- Options-specific contract selection ---
+TARGET_EXPIRATION_MIN_DAYS = 0
+TARGET_EXPIRATION_MAX_DAYS = 2
+
+# --- Options-specific sizing & risk (premium-based, NOT stock-price-based) ---
+BUDGET_PER_TRADE = 100.0        # target $ spend on premium per trade
+MAX_CONTRACT_COST_CAP = 300.0   # skip the trade if even 1 contract costs more than this
+OPTION_STOP_LOSS_PCT = 0.30     # exit if premium drops 30% from entry
+OPTION_TAKE_PROFIT_PCT = 0.50   # exit if premium gains 50% from entry (~1.67:1 reward:risk)
+
+# --- Day-trading rule: never hold overnight ---
+EOD_FLATTEN_MINUTES_BEFORE_CLOSE = 15
+
+TRADING_BASE = ALPACA_BASE_URL.rstrip("/")
+DATA_BASE = "https://data.alpaca.markets"
+HEADERS = {"APCA-API-KEY-ID": ALPACA_API_KEY, "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY}
+
+api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPACA_BASE_URL, api_version="v2")
+
+
+# ==============================================================================
+# STEP 2: NOTIFICATIONS (Discord)
+# ==============================================================================
+def send_alert(message_text):
+    try:
+        for i in range(0, len(message_text), 2000):
+            chunk = message_text[i:i + 2000]
+            response = requests.post(DISCORD_WEBHOOK_URL, json={"content": chunk}, timeout=10)
+            if response.status_code != 204:
+                print(f"❌ Discord Notification failed: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"❌ Notification connection error: {e}")
+
+
+# ==============================================================================
+# STEP 3: OPTION CONTRACT DISCOVERY & PRICING
+# ==============================================================================
+def get_option_contracts(underlying, option_type):
+    """Fetch active contracts for `underlying` (call/put) expiring within the
+    target window, via Alpaca's Trading API options-contracts endpoint."""
+    today = datetime.date.today()
+    exp_gte = (today + datetime.timedelta(days=TARGET_EXPIRATION_MIN_DAYS)).isoformat()
+    exp_lte = (today + datetime.timedelta(days=TARGET_EXPIRATION_MAX_DAYS)).isoformat()
+    try:
+        resp = requests.get(
+            f"{TRADING_BASE}/v2/options/contracts",
+            headers=HEADERS,
+            params={
+                "underlying_symbols": underlying,
+                "expiration_date_gte": exp_gte,
+                "expiration_date_lte": exp_lte,
+                "type": option_type,
+                "status": "active",
+                "limit": 100,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return resp.json().get("option_contracts", [])
+    except Exception as e:
+        print(f"⚠️ Could not fetch option contracts for {underlying} ({option_type}): {e}")
+        return []
+
+
+def choose_atm_contract(contracts, current_price):
+    """Pick the contract with strike closest to the current stock price
+    (at-the-money), preferring the expiration closest to the middle of the
+    target window if there's a tie."""
+    if not contracts:
+        return None
+    target_days = (TARGET_EXPIRATION_MIN_DAYS + TARGET_EXPIRATION_MAX_DAYS) / 2
+    today = datetime.date.today()
+
+    def score(c):
+        strike_diff = abs(float(c["strike_price"]) - current_price)
+        exp_date = datetime.date.fromisoformat(c["expiration_date"])
+        days_diff = abs((exp_date - today).days - target_days)
+        return (strike_diff, days_diff)
+
+    return min(contracts, key=score)
+
+
+def get_option_mid_price(option_symbol):
+    """Latest bid/ask midpoint for an option contract, via Alpaca's options
+    market data endpoint (indicative feed — free tier, available on paper)."""
+    try:
+        resp = requests.get(
+            f"{DATA_BASE}/v1beta1/options/quotes/latest",
+            headers=HEADERS,
+            params={"symbols": option_symbol, "feed": "indicative"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        quote = resp.json().get("quotes", {}).get(option_symbol)
+        if not quote:
+            return None
+        bid = float(quote.get("bp", 0) or 0)
+        ask = float(quote.get("ap", 0) or 0)
+        if bid <= 0 or ask <= 0:
+            return None
+        return (bid + ask) / 2
+    except Exception as e:
+        print(f"⚠️ Could not fetch quote for {option_symbol}: {e}")
+        return None
+
+
+# ==============================================================================
+# STEP 4: ORDER SUBMISSION (same Orders API as stock trades)
+# ==============================================================================
+def submit_option_order_and_notify(option_symbol, qty, side, reason):
+    try:
+        order = api.submit_order(
+            symbol=option_symbol, qty=qty, side=side, type="market", time_in_force="day"
+        )
+    except Exception as e:
+        send_alert(f"❌ OPTION ORDER FAILED:\nAction: {side.upper()} {qty}x {option_symbol}\nError: {e}")
+        print(f"Status: Option order submission failed for {option_symbol}: {e}")
+        return
+
+    final_order = order
+    for _ in range(5):
+        time.sleep(2)
+        try:
+            final_order = api.get_order(order.id)
+        except Exception:
+            break
+        if final_order.status in ("filled", "canceled", "rejected", "expired"):
+            break
+
+    status = final_order.status
+    if status == "filled":
+        fill_price = final_order.filled_avg_price
+        price_str = f"${float(fill_price):.2f}" if fill_price else "market price"
+        send_alert(
+            f"✅ OPTION ORDER FILLED:\n"
+            f"💰 {side.upper()} {qty}x {option_symbol}\n"
+            f"📈 Fill Price: {price_str}/contract\n"
+            f"🟢 Reason: {reason}"
+        )
+        print(f"Status: {side.upper()} {option_symbol} filled at {price_str}.")
+    elif status in ("canceled", "rejected", "expired"):
+        send_alert(
+            f"🚫 OPTION ORDER {status.upper()}:\n"
+            f"💰 {side.upper()} {qty}x {option_symbol}\n"
+            f"🔴 Reason attempted: {reason}"
+        )
+    else:
+        send_alert(f"⏳ OPTION ORDER STATUS UNCLEAR: {side.upper()} {qty}x {option_symbol} — verify manually.")
+
+
+# ==============================================================================
+# STEP 5: SIGNAL ENGINE (identical logic to the stock bot's scan)
+# ==============================================================================
+def get_signal(ticker):
+    """Returns 'bullish', 'bearish', or None, using the same 20-bar MA / 200 EMA
+    trend / volume-surge rule as trading_bot.py."""
+    data = yf.download(ticker, period=LOOKBACK_PERIOD, interval=BAR_INTERVAL, progress=False)
+    if data.empty:
+        return None, None
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+
+    data["MA"] = data["Close"].rolling(window=MA_WINDOW).mean()
+    data["EMA200"] = data["Close"].ewm(span=EMA_TREND_WINDOW, adjust=False).mean()
+    data["VolAvg"] = data["Volume"].rolling(window=VOLUME_AVG_WINDOW).mean()
+
+    min_bars_needed = max(MA_WINDOW, EMA_TREND_WINDOW, VOLUME_AVG_WINDOW) + 1
+    if len(data) < min_bars_needed or pd.isna(data["MA"].iloc[-2]):
+        return None, None
+
+    latest, prev = data.iloc[-1], data.iloc[-2]
+    current_close, current_ma = float(latest["Close"]), float(latest["MA"])
+    previous_close, previous_ma = float(prev["Close"]), float(prev["MA"])
+    current_ema200 = float(latest["EMA200"])
+    current_volume, current_vol_avg = float(latest["Volume"]), float(latest["VolAvg"])
+
+    volume_ok = (
+        not pd.isna(current_vol_avg) and current_vol_avg > 0
+        and current_volume >= current_vol_avg * VOLUME_SURGE_MULTIPLIER
+    )
+
+    if previous_close < previous_ma and current_close > current_ma:
+        if current_close > current_ema200 and volume_ok:
+            return "bullish", current_close
+    elif previous_close > previous_ma and current_close < current_ma:
+        if current_close < current_ema200 and volume_ok:
+            return "bearish", current_close
+
+    return None, current_close
+
+
+def already_holds_option_on(underlying):
+    """True if we currently hold ANY open option position on this underlying
+    (call or put) — prevents stacking multiple positions on the same stock."""
+    try:
+        positions = api.list_positions()
+        for p in positions:
+            if getattr(p, "asset_class", "") == "us_option" and p.symbol.startswith(underlying):
+                return True
+    except Exception as e:
+        print(f"⚠️ Could not check existing option positions: {e}")
+    return False
+
+
+# ==============================================================================
+# STEP 6: SCAN JOB — open new option positions on fresh signals
+# ==============================================================================
+def run_options_scan():
+    print(f"⏰ OPTIONS SCAN: {datetime.datetime.now()}")
+    for ticker in WATCHLIST:
+        try:
+            signal, current_price = get_signal(ticker)
+            if signal is None:
+                print(f"-> {ticker}: no qualifying signal.")
+                continue
+
+            if already_holds_option_on(ticker):
+                print(f"-> {ticker}: bullish/bearish signal but already holding an option on this underlying — skipping.")
+                continue
+
+            option_type = "call" if signal == "bullish" else "put"
+            contracts = get_option_contracts(ticker, option_type)
+            contract = choose_atm_contract(contracts, current_price)
+            if not contract:
+                print(f"-> {ticker}: no suitable {option_type} contract found in the {TARGET_EXPIRATION_MIN_DAYS}-{TARGET_EXPIRATION_MAX_DAYS} day window — skipping.")
+                continue
+
+            option_symbol = contract["symbol"]
+            mid_price = get_option_mid_price(option_symbol)
+            if mid_price is None or mid_price <= 0:
+                print(f"-> {ticker}: couldn't get a live quote for {option_symbol} — skipping.")
+                continue
+
+            contract_cost = mid_price * 100  # each contract = 100 shares of exposure
+            if contract_cost > MAX_CONTRACT_COST_CAP:
+                print(f"-> {ticker}: 1 contract of {option_symbol} costs ${contract_cost:.2f}, above the ${MAX_CONTRACT_COST_CAP:.0f} cap — skipping.")
+                continue
+
+            qty = max(1, int(BUDGET_PER_TRADE // contract_cost))
+            print(f"-> {ticker}: {signal} signal, buying {qty}x {option_symbol} @ ~${mid_price:.2f}/contract (${contract_cost * qty:.2f} total).")
+
+            submit_option_order_and_notify(
+                option_symbol, qty, "buy",
+                f"{signal.title()} 5-min MA crossover on {ticker} (200 EMA trend + volume confirmed). "
+                f"Strike ${contract['strike_price']}, exp {contract['expiration_date']}."
+            )
+            time.sleep(1.5)
+
+        except Exception as e:
+            print(f"❌ Error scanning {ticker}: {e}")
+            send_alert(f"🚨 OPTIONS SCANNER ERROR on {ticker}: {e}")
+
+
+# ==============================================================================
+# STEP 7: MANAGE JOB — stop-loss / take-profit / end-of-day flatten (runs every minute)
+# ==============================================================================
+def is_near_market_close(minutes_before):
+    try:
+        clock = api.get_clock()
+        if not clock.is_open:
+            return False
+        close_time = clock.next_close
+        now = clock.timestamp
+        minutes_remaining = (close_time - now).total_seconds() / 60
+        return minutes_remaining <= minutes_before
+    except Exception as e:
+        print(f"⚠️ Could not check market close time: {e}")
+        return False
+
+
+def run_options_manage():
+    print(f"⏱️ OPTIONS MANAGE: {datetime.datetime.now()}")
+    try:
+        positions = api.list_positions()
+    except Exception as e:
+        print(f"⚠️ Could not fetch positions: {e}")
+        return
+
+    option_positions = [p for p in positions if getattr(p, "asset_class", "") == "us_option"]
+    if not option_positions:
+        return
+
+    eod = is_near_market_close(EOD_FLATTEN_MINUTES_BEFORE_CLOSE)
+
+    for pos in option_positions:
+        symbol = pos.symbol
+        qty = float(pos.qty)
+        entry_price = float(pos.avg_entry_price)
+        current_price = float(pos.current_price) if pos.current_price else None
+
+        if current_price is None or entry_price <= 0:
+            continue
+
+        pl_pct = (current_price - entry_price) / entry_price
+
+        if eod:
+            send_alert(f"🕐 [END OF DAY FLATTEN] Closing {symbol} (this bot never holds overnight). P/L: {pl_pct*100:+.2f}%")
+            submit_option_order_and_notify(symbol, abs(qty), "sell", "End-of-day flatten — day-trading bot, no overnight holds.")
+            continue
+
+        if pl_pct <= -OPTION_STOP_LOSS_PCT:
+            send_alert(f"🔻 [OPTION STOP-LOSS] {symbol} down {pl_pct*100:.2f}% (limit -{OPTION_STOP_LOSS_PCT*100:.0f}%). Closing.")
+            submit_option_order_and_notify(symbol, abs(qty), "sell", f"Premium stop-loss hit at {pl_pct*100:.2f}%.")
+            continue
+
+        if pl_pct >= OPTION_TAKE_PROFIT_PCT:
+            send_alert(f"🎯 [OPTION TAKE-PROFIT] {symbol} up {pl_pct*100:.2f}% (target +{OPTION_TAKE_PROFIT_PCT*100:.0f}%). Closing.")
+            submit_option_order_and_notify(symbol, abs(qty), "sell", f"Premium take-profit hit at +{pl_pct*100:.2f}%.")
+            continue
+
+        print(f"-> {symbol}: holding, P/L {pl_pct*100:+.2f}% (stop -{OPTION_STOP_LOSS_PCT*100:.0f}%, target +{OPTION_TAKE_PROFIT_PCT*100:.0f}%).")
+
+
+# ==============================================================================
+# STEP 8: ENTRY POINT
+# ==============================================================================
+def is_market_hours():
+    try:
+        clock = api.get_clock()
+        return bool(clock.is_open)
+    except Exception as e:
+        print(f"⚠️ Could not reach Alpaca clock: {e}")
+        eastern = zoneinfo.ZoneInfo("America/New_York")
+        now = datetime.datetime.now(eastern)
+        if now.weekday() >= 5:
+            return False
+        return now.replace(hour=9, minute=30, second=0) <= now <= now.replace(hour=16, minute=0, second=0)
+
+
+if __name__ == "__main__":
+    job = sys.argv[1] if len(sys.argv) > 1 else "scan"
+
+    if job == "scan":
+        if is_market_hours():
+            run_options_scan()
+        else:
+            print("Outside market hours — skipping options scan.")
+
+    elif job == "manage":
+        if is_market_hours():
+            run_options_manage()
+        else:
+            print("Outside market hours — skipping options manage.")
+
+    else:
+        print(f"Unknown job '{job}'. Use one of: scan, manage")
+        sys.exit(1)
